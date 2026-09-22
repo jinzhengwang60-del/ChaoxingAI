@@ -1,0 +1,14 @@
+# Local credentials and generated data
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.pyc
+cache.json
+*.sqlite3
+*.sqlite3-*
+work/
+outputs/*backup*.js
+outputs/auto-ai-before-submit.js
+*.log
