@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChaoxingAI 首次配置</title>
+<style>body{margin:0;background:#f3f6fb;color:#23344d;font:17px/1.8 system-ui,"Microsoft YaHei",sans-serif}main{max-width:850px;margin:45px auto;padding:35px;background:white;border-radius:16px}h1{color:#17385c}h2{font-size:22px;margin-top:30px}a{color:#2563eb}aside{padding:18px;background:#edf4ff;border-radius:8px}li{margin:12px 0}code{background:#eef2f7;padding:2px 6px}small{color:#64748b}</style>
+<main><small>ChaoxingAI / 首次使用</small><h1>三步连接你的 AI</h1>
+<aside>你无需安装 Python，也无需编辑配置文件。密钥只需配置一次；以后双击启动器即可。</aside>
+<h2>1. 在 DeepSeek 官方平台创建密钥</h2>
+<ol><li>打开 <a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noopener">DeepSeek API 密钥页面</a>，在官方页面完成注册或登录。</li>
+<li>找到 API keys / API 密钥，创建一个新密钥，名称可以填“ChaoxingAI”。</li>
+<li>复制完整密钥。不要发给他人，也不要贴到脚本代码、反馈截图或聊天中。</li></ol>
+<p>DeepSeek 的聊天网页与 API 是不同的使用入口。API 可能收费；请在官方平台检查余额与额度。本工具的“获取密钥”按钮不会替你注册、充值或接受协议。</p>
+<h2>2. 粘贴，测试并保存</h2><p>回到启动器，把密钥粘贴到“API 密钥”输入框，点击“测试并保存，启动服务”。测试会发送一道很短的示例题，可能产生少量 API 费用。等到状态显示“服务运行中 / 已就绪”即可。</p>
+<p>默认模型为 <code>deepseek-flash</code>。多数情况下无需改动；如账号使用其他模型，在“高级设置”中填写官方提供的模型名称。</p>
+<h2>3. 安装脚本，打开学习通</h2><p>点击启动器中的“安装 / 更新浏览器脚本”，从 <a href="https://scriptcat.org/zh-CN/script-show-page/8102" target="_blank" rel="noopener">脚本猫项目页</a>安装普通脚本。停用其他同类脚本，刷新学习通课程页。</p>
+<p>保持启动器运行，可以最小化。关闭启动器会停止 AI 服务。首次使用请观察一个章节的完整流程，AI 建议不保证正确。</p>
+<h2>常见提示</h2><ul><li><strong>密钥无效：</strong>重新复制完整密钥，检查是否被撤销。</li><li><strong>余额或额度不足：</strong>到 DeepSeek 官方平台检查，工具不会自动充值。</li><li><strong>模型不可用：</strong>在高级设置中使用账号当前支持的模型。</li><li><strong>已有服务正在运行：</strong>如果以前开过 <code>server.py</code>，先在原窗口按 Ctrl+C 停止，再在启动器中启动服务。</li><li><strong>重复双击：</strong>启动器会提示使用已有窗口，不会启动两个服务。</li></ul>
+<h2>已有旧配置怎么办？</h2><p>使用启动器的“导入原 .env”，选择原项目 outputs 目录中的 .env；测试通过后会另行加密保存，原文件不会被修改。新启动器使用独立缓存，第一次运行不会搬运旧缓存。</p>
+<p>配置和缓存位于 Windows 当前用户的 <code>%LOCALAPPDATA%\ChaoxingAI</code>。密钥由 Windows 当前账号加密；复制配置文件到另一台电脑通常无法解密，需要重新输入密钥。</p>
+<p><a href="https://github.com/jinzhengwang60-del/ChaoxingAI" target="_blank" rel="noopener">开源项目与反馈</a> · <a href="https://api-docs.deepseek.com/" target="_blank" rel="noopener">DeepSeek 官方说明</a></p></main></html>

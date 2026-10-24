@@ -12,3 +12,5 @@ work/
 outputs/*backup*.js
 outputs/auto-ai-before-submit.js
 *.log
+dist/
+build/
