@@ -100,7 +100,7 @@ class DesktopTests(unittest.TestCase):
     def test_upstream_errors_are_readable_without_leaking_response(self):
         data = {'question': 'x', 'type': '单选题', 'options': [{'label': 'A', 'text': 'x'}, {'label': 'B', 'text': 'y'}]}
         for status, expected in [(401, '密钥无效'), (402, '余额或额度不足'), (404, '模型不存在'), (429, '过于频繁')]:
-            with patch.object(server, 'urlopen', side_effect=HTTPError('https://api.deepseek.com', status, 'secret upstream body', None, None)):
+            with patch.object(server.time, 'sleep'), patch.object(server, 'urlopen', side_effect=HTTPError('https://api.deepseek.com', status, 'secret upstream body', None, None)):
                 with self.assertRaises(server.ServiceError) as error:
                     server.call_model(data, config=self.settings)
                 self.assertIn(expected, error.exception.message)

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         学习通 AI 辅助（自动选择·自动提交）
 // @namespace    unrival
-// @version      4.0.10-ai
+// @version      4.0.11-ai
 // @description  保留原视频与任务流程；章节题目显示 AI 建议并自动选择；全部选择核对通过后自动提交，结果页确认后继续。
 // @author       unrival
 // @run-at       document-end
@@ -48,7 +48,7 @@
                 aiStartupBadge.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:2147483647;max-width:75vw;padding:10px 14px;background:#17324d;color:white;font:14px/1.6 sans-serif;white-space:pre-wrap;border-radius:6px;';
             }
             if (!aiStartupBadge.isConnected) (document.body || document.documentElement).appendChild(aiStartupBadge);
-            aiStartupBadge.textContent = 'AI 脚本 4.0.10｜' + message;
+            aiStartupBadge.textContent = 'AI 脚本 4.0.11｜' + message;
         } catch (error) { console.error('[Chaoxing AI status]', error); }
     };
     const aiStartupError = error => {
@@ -1387,6 +1387,7 @@
         aiStartupStatus('已识别 ' + questionList.length + ' / ' + questionNum + ' 题，开始 AI 分析');
         // Select answers, verify all questions, then submit once. Only the result page marks completion.
         let aiSelectionPaused = false;
+        let aiAnalysisRunning = false;
         const selectionControl = _d.createElement('button');
         selectionControl.type = 'button';
         selectionControl.textContent = '暂停自动选择与提交';
@@ -1394,13 +1395,20 @@
             aiSelectionPaused = true;
             selectionControl.textContent = '自动选择与提交已暂停';
             selectionControl.disabled = true;
+            retryControl.disabled = true;
         };
+        const retryControl = _d.createElement('button');
+        retryControl.type = 'button';
+        retryControl.textContent = '重试失败题目';
+        retryControl.disabled = true;
+        retryControl.style.marginLeft = '10px';
+        retryControl.onclick = () => { runAnalysisBatch(true).catch(aiStartupError); };
         const selectionStatus = _d.createElement('p');
         selectionStatus.textContent = 'AI 将自动替换选择；全部题目核对通过后倒计时 5 秒自动提交。可随时暂停。';
         _d.addEventListener('change', event => {
             if (event.isTrusted && Array.from(questionsElement).some(root => root.contains(event.target))) aiSelectionPaused = true;
         }, true);
-        _d.body.prepend(selectionControl, selectionStatus);
+        _d.body.prepend(selectionControl, retryControl, selectionStatus);
         async function selectRecommendations(quu, labels, root, wasTouched) {
             quu.aiVerify = null;
             if (aiSelectionPaused) return '已暂停自动选择，请手动核对。';
@@ -1484,27 +1492,43 @@
 
         async function analyzeQuestion(quu, index) {
             const root = questionsElement[index];
-            let touched = false;
-            const onInteraction = event => { if (event.isTrusted) touched = true; };
-            root?.addEventListener('click', onInteraction, true);
-            root?.addEventListener('change', onInteraction, true);
-            const box = _d.createElement('pre');
-            box.style.cssText = 'white-space:pre-wrap;padding:12px;background:#eef6ff;color:#17324d;border:1px solid #abc;';
-            box.textContent = 'AI 正在分析：' + quu.question;
-            (questionsElement[index] || _d.body).appendChild(box);
+            // Keep tracking manual changes between a failed request and a later retry.
+            if (!quu.aiBox) {
+                quu.aiTouched = false;
+                const onInteraction = event => { if (event.isTrusted) quu.aiTouched = true; };
+                root?.addEventListener('click', onInteraction, true);
+                root?.addEventListener('change', onInteraction, true);
+                quu.aiBox = _d.createElement('pre');
+                quu.aiBox.style.cssText = 'white-space:pre-wrap;padding:12px;background:#eef6ff;color:#17324d;border:1px solid #abc;';
+                (root || _d.body).appendChild(quu.aiBox);
+            }
+            const box = quu.aiBox;
+            quu.aiVerify = null;
+            quu.aiRequestFailed = false;
+            box.textContent = 'AI 正在分析：' + quu.question + '\n网络波动或服务繁忙时会自动重试，请稍候。';
             const options = quu.type === '判断题'
                 ? [{label: 'true', text: '正确'}, {label: 'false', text: '错误'}]
                 : Object.entries(quu.options).filter(([key]) => key !== 'length')
                     .map(([text, option]) => ({label: option.value, text}));
             await new Promise(resolve => {
-                const fail = message => { box.textContent = 'AI 暂无建议：' + message + '\n请自行判断并手动作答。'; resolve(); };
+                let settled = false;
+                const fail = message => {
+                    if (settled) return;
+                    settled = true;
+                    quu.aiRequestFailed = true;
+                    quu.aiVerify = null;
+                    box.textContent = 'AI 暂无建议：' + message + '\n当前题目尚未核对，不会自动提交。恢复后可点击顶部“重试失败题目”。';
+                    resolve();
+                };
                 try {
                     GM_xmlhttpRequest({
                         method: 'POST', url: 'http://127.0.0.1:8787/analyze',
                         headers: {'Content-Type': 'application/json', 'X-Chaoxing-AI': '1'},
-                        timeout: 90000,
+                        // Allow the local service to complete its bounded upstream retries.
+                        timeout: 270000,
                         data: JSON.stringify({question: quu.question, type: quu.type, options}),
                         onload: async res => {
+                            if (settled) return;
                             try {
                                 const data = JSON.parse(res.responseText);
                                 if (res.status !== 200 || !Array.isArray(data.recommended_options) ||
@@ -1513,27 +1537,26 @@
                                     data.confidence < 0 || data.confidence > 1 || typeof data.explanation !== 'string') {
                                     fail(data.error || '服务返回格式错误'); return;
                                 }
+                                settled = true;
                                 box.textContent = 'AI 推荐：' + (data.recommended_options.map(label => quu.type === '判断题' ? (label === 'true' ? '对（true）' : '错（false）') : label).join('、') || '无法确定') +
                                     '\n置信度（模型自评）：' + Math.round(data.confidence * 100) + '%' +
                                     '\n简短解析：' + data.explanation + (data.cached ? '\n来自本地缓存' : '') +
-                                    '\n' + await selectRecommendations(quu, data.recommended_options, root, () => touched);
+                                    '\n' + await selectRecommendations(quu, data.recommended_options, root, () => quu.aiTouched);
                                 resolve();
-                            } catch (e) { fail('无法解析服务响应'); }
+                            } catch (e) { settled = false; fail('无法解析服务响应或核对选项'); }
                         },
                         onerror: () => fail('无法连接本地服务，请检查服务是否启动'),
-                        ontimeout: () => fail('分析超时'),
+                        ontimeout: () => fail('等待本地服务分析超时，请检查服务和网络'),
                         onabort: () => fail('请求已取消')
                     });
                 } catch (e) { fail('请求发送失败'); }
             });
-            root?.removeEventListener('click', onInteraction, true);
-            root?.removeEventListener('change', onInteraction, true);
         }
         async function submitVerifiedAnswers() {
             const valid = () => !aiSelectionPaused && questionNum > 0 &&
                 questionsElement.length === questionNum && questionList.length === questionNum &&
                 new Set(questionList.map(q => q.questionid)).size === questionNum &&
-                questionList.every(q => typeof q.aiVerify === 'function' && q.aiVerify());
+                questionList.every(q => !q.aiRequestFailed && typeof q.aiVerify === 'function' && q.aiVerify());
             if (!valid()) {
                 selectionStatus.textContent = '未自动提交：有未识别、未成功作答、人工修改的题目，或操作已暂停。请手动检查。';
                 return;
@@ -1577,11 +1600,31 @@
                 console.error('[Chaoxing AI submit]', error);
             }
         }
-        (async () => {
-            for (const quu of questionList) {
-                await analyzeQuestion(quu, quu.elementIndex);
+        async function runAnalysisBatch(retryOnly = false) {
+            if (aiAnalysisRunning) return;
+            if (aiSelectionPaused) {
+                selectionStatus.textContent = '自动选择与提交已暂停，请手动核对；需要重新运行时刷新页面。';
+                return;
             }
-            await submitVerifiedAnswers();
+            const pending = retryOnly ? questionList.filter(quu => quu.aiRequestFailed) : questionList;
+            if (!pending.length) return;
+            aiAnalysisRunning = true;
+            retryControl.disabled = true;
+            try {
+                for (const [index, quu] of pending.entries()) {
+                    if (aiSelectionPaused) break;
+                    selectionStatus.textContent = (retryOnly ? '正在重试失败题目 ' : '正在分析题目 ') +
+                        (index + 1) + ' / ' + pending.length + '；网络波动时会自动重试，请稍候。';
+                    await analyzeQuestion(quu, quu.elementIndex);
+                }
+                await submitVerifiedAnswers();
+            } finally {
+                aiAnalysisRunning = false;
+                retryControl.disabled = aiSelectionPaused || !questionList.some(quu => quu.aiRequestFailed);
+            }
+        }
+        (async () => {
+            await runAnalysisBatch();
         })().catch(aiStartupError);
     } else if (_l.href.includes('work/phone/selectWorkQuestionYiPiYue')) {
         _w.top.unrivalWorkDone = true;

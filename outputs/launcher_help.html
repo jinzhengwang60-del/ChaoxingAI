@@ -14,6 +14,8 @@
 <h2>3. 安装脚本，打开学习通</h2><p>点击启动器中的“安装 / 更新浏览器脚本”，从 <a href="https://scriptcat.org/zh-CN/script-show-page/8102" target="_blank" rel="noopener">脚本猫项目页</a>安装普通脚本。停用其他同类脚本，刷新学习通课程页。</p>
 <p>保持启动器运行，可以最小化。关闭启动器会停止 AI 服务。首次使用请观察一个章节的完整流程，AI 建议不保证正确。</p>
 <h2>常见提示</h2><ul><li><strong>密钥无效：</strong>重新复制完整密钥，检查是否被撤销。</li><li><strong>余额或额度不足：</strong>到 DeepSeek 官方平台检查，工具不会自动充值。</li><li><strong>模型不可用：</strong>在高级设置中使用账号当前支持的模型。</li><li><strong>已有服务正在运行：</strong>如果以前开过 <code>server.py</code>，先在原窗口按 Ctrl+C 停止，再在启动器中启动服务。</li><li><strong>重复双击：</strong>启动器会提示使用已有窗口，不会启动两个服务。</li></ul>
+<h2>连接超时怎么办？</h2><p>网络波动、临时断线或 DeepSeek 繁忙时，本地服务最多尝试 3 次，请保持启动器运行并等待提示。仍失败时，恢复网络后点击题目页顶部“重试失败题目”；成功的题目不会重复分析，未核对的题目不会自动提交。</p>
+<p>本功能需要启动器 <strong>1.0.1</strong> 与浏览器脚本 <strong>4.0.11-ai</strong>。升级时先退出旧启动器，再启动新版并更新浏览器脚本、刷新课程页。密钥或余额错误需在官方平台处理；自动重试可能产生额外 API 费用。</p>
 <h2>已有旧配置怎么办？</h2><p>使用启动器的“导入原 .env”，选择原项目 outputs 目录中的 .env；测试通过后会另行加密保存，原文件不会被修改。新启动器使用独立缓存，第一次运行不会搬运旧缓存。</p>
 <p>配置和缓存位于 Windows 当前用户的 <code>%LOCALAPPDATA%\ChaoxingAI</code>。密钥由 Windows 当前账号加密；复制配置文件到另一台电脑通常无法解密，需要重新输入密钥。</p>
 <p><a href="https://github.com/jinzhengwang60-del/ChaoxingAI" target="_blank" rel="noopener">开源项目与反馈</a> · <a href="https://api-docs.deepseek.com/" target="_blank" rel="noopener">DeepSeek 官方说明</a></p></main></html>

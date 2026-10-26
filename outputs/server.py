@@ -1,10 +1,14 @@
 """Local AI analysis service shared by the CLI and Windows launcher."""
 from contextlib import closing
+from email.utils import parsedate_to_datetime
 import hashlib
+from http.client import HTTPException
 import json
 import math
+import random
 import ssl
 import socket
+import time
 from pathlib import Path
 import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -28,11 +32,105 @@ MODEL = CONFIG.get('DEEPSEEK_MODEL', 'deepseek-chat')
 CACHE = BASE / 'cache.sqlite3'
 PROMPT_VERSION = 1
 SERVICE_ID = 'ChaoxingAI'
-SERVICE_VERSION = '1.0.0'
+SERVICE_VERSION = '1.0.1'
+MODEL_MAX_ATTEMPTS = 3
+MODEL_ATTEMPT_TIMEOUT = 70
+MODEL_TOTAL_TIMEOUT = 225
+MAX_RESPONSE_BYTES = 1048576
 
 class ServiceError(Exception):
-    def __init__(self, status, message):
+    def __init__(self, status, message, *, code='service_error', retryable=False,
+                 retry_after=0, attempts=1):
+        super().__init__(message)
         self.status, self.message = status, message
+        self.code, self.retryable = code, retryable
+        self.retry_after, self.attempts = retry_after, attempts
+
+
+def retry_after_seconds(headers):
+    value = headers.get('Retry-After', '') if headers else ''
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        try:
+            seconds = parsedate_to_datetime(value).timestamp() - time.time()
+        except (TypeError, ValueError, OverflowError):
+            return 0
+    return max(0, seconds) if math.isfinite(seconds) else 0
+
+
+def read_model_json(response, deadline):
+    """Bound the entire body read, including upstream blank keep-alive lines."""
+    chunks, size = [], 0
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError()
+        # urllib's timeout is per socket operation; keep-alives must not extend it forever.
+        stream = getattr(response, 'fp', None)
+        sock = getattr(getattr(stream, 'raw', None), '_sock', None)
+        if sock is not None:
+            sock.settimeout(remaining)
+        chunk = response.read1(min(65536, MAX_RESPONSE_BYTES + 1 - size))
+        if time.monotonic() >= deadline:
+            raise TimeoutError()
+        if not chunk:
+            break
+        chunks.append(chunk)
+        size += len(chunk)
+        if size > MAX_RESPONSE_BYTES:
+            raise ServiceError(502, 'DeepSeek 返回内容过大，请稍后重试', code='invalid_response')
+    return json.loads(b''.join(chunks))
+
+
+def request_model(request, data, deadline):
+    try:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError()
+        with urlopen(request, timeout=min(MODEL_ATTEMPT_TIMEOUT, remaining)) as response:
+            raw = read_model_json(response, deadline)
+        choice = raw['choices'][0]
+        if choice.get('finish_reason') != 'stop':
+            raise ServiceError(502, 'AI 输出未完整结束，请重试', code='invalid_response')
+        return check_result(json.loads(choice['message']['content']), data)
+    except HTTPError as error:
+        status = error.code
+        delay = retry_after_seconds(error.headers)
+        error.close()
+        messages = {
+            400: '请求未被接受，请检查高级设置中的模型名称',
+            401: 'API 密钥无效，请重新复制完整密钥',
+            402: 'DeepSeek 账户余额或额度不足，请前往平台检查',
+            403: '此密钥没有调用权限，请检查 DeepSeek 账户设置',
+            404: '模型不存在或已不可用，请更换模型名称',
+            408: 'DeepSeek 响应超时，请稍后重试',
+            422: '当前模型不支持请求格式，请检查模型设置',
+            429: '请求过于频繁或额度受限，请稍后重试',
+            500: 'DeepSeek 服务暂时异常，请稍后重试',
+            502: 'DeepSeek 上游连接异常，请稍后重试',
+            503: 'DeepSeek 服务繁忙，请稍后重试',
+            504: 'DeepSeek 响应超时，请稍后重试',
+        }
+        raise ServiceError(502, messages.get(status, 'DeepSeek 请求失败') + '（HTTP ' + str(status) + '）',
+                           code='upstream_http_' + str(status),
+                           retryable=status in (408, 429, 500, 502, 503, 504), retry_after=delay) from None
+    except ssl.SSLCertVerificationError:
+        raise ServiceError(502, '安全连接验证失败，请检查系统时间或网络证书设置', code='tls_certificate') from None
+    except URLError as error:
+        if isinstance(error.reason, ssl.SSLCertVerificationError):
+            raise ServiceError(502, '安全连接验证失败，请检查系统时间或网络证书设置', code='tls_certificate') from None
+        timed_out = isinstance(error.reason, TimeoutError)
+        raise ServiceError(504 if timed_out else 502,
+                           'DeepSeek 响应超时' if timed_out else '无法连接 DeepSeek，请检查网络或代理设置',
+                           code='upstream_timeout' if timed_out else 'upstream_connection', retryable=True) from None
+    except TimeoutError:
+        raise ServiceError(504, 'DeepSeek 响应超时', code='upstream_timeout', retryable=True) from None
+    except (OSError, HTTPException):
+        raise ServiceError(502, 'DeepSeek 连接中断，请检查网络或稍后重试',
+                           code='upstream_connection', retryable=True) from None
+    except (KeyError, IndexError, TypeError, ValueError):
+        raise ServiceError(502, 'DeepSeek 返回内容无法解析', code='invalid_response') from None
 
 def validate(data):
     if not isinstance(data, dict):
@@ -88,32 +186,19 @@ def call_model(data, *, config=None):
         payload['thinking'] = {'type': 'disabled'}
     request = Request('https://api.deepseek.com/chat/completions',
         data=json.dumps(payload).encode(), headers={'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json'})
-    try:
-        with urlopen(request, timeout=70) as response:
-            raw = json.load(response)
-        choice = raw['choices'][0]
-        if choice.get('finish_reason') != 'stop':
-            raise ServiceError(502, 'AI 输出未完整结束，请重试')
-        return check_result(json.loads(choice['message']['content']), data)
-    except HTTPError as error:
-        messages = {
-            400: '请求未被接受，请检查高级设置中的模型名称',
-            401: 'API 密钥无效，请重新复制完整密钥',
-            402: 'DeepSeek 账户余额或额度不足，请前往平台检查',
-            403: '此密钥没有调用权限，请检查 DeepSeek 账户设置',
-            404: '模型不存在或已不可用，请更换模型名称',
-            422: '当前模型不支持请求格式，请检查模型设置',
-            429: '请求过于频繁或额度受限，请稍后重试',
-            500: 'DeepSeek 服务暂时异常，请稍后重试',
-            503: 'DeepSeek 服务繁忙，请稍后重试',
-        }
-        raise ServiceError(502, messages.get(error.code, 'DeepSeek 请求失败') + '（HTTP ' + str(error.code) + '）') from None
-    except ssl.SSLError:
-        raise ServiceError(504, '安全连接验证失败，请检查系统时间或网络设置') from None
-    except (URLError, TimeoutError):
-        raise ServiceError(504, 'DeepSeek 连接失败或超时') from None
-    except (KeyError, IndexError, TypeError, ValueError):
-        raise ServiceError(502, 'DeepSeek 返回内容无法解析') from None
+    deadline = time.monotonic() + MODEL_TOTAL_TIMEOUT
+    for attempt in range(1, MODEL_MAX_ATTEMPTS + 1):
+        try:
+            return request_model(request, data, min(deadline, time.monotonic() + MODEL_ATTEMPT_TIMEOUT))
+        except ServiceError as error:
+            error.attempts = attempt
+            if not error.retryable:
+                raise
+            delay = max(2 ** attempt + random.uniform(0, 0.5), error.retry_after)
+            if attempt == MODEL_MAX_ATTEMPTS or time.monotonic() + delay + 1 >= deadline:
+                message = error.message + '；已尝试 ' + str(attempt) + ' 次，请恢复网络或稍后重试。'
+                raise ServiceError(error.status, message, code=error.code, retryable=True, attempts=attempt) from None
+            time.sleep(delay)
 
 def analyze(data, *, config=None, cache_path=None):
     data = validate(data)
@@ -182,7 +267,8 @@ class Handler(BaseHTTPRequestHandler):
             analyzer = getattr(self.server, 'analyzer', analyze)
             self.reply(200, analyzer(data))
         except ServiceError as error:
-            self.reply(error.status, {'error': error.message})
+            self.reply(error.status, {'error': error.message, 'code': error.code,
+                                     'retryable': error.retryable, 'attempts': error.attempts})
         except Exception:
             self.reply(500, {'error': '本地服务错误，请检查缓存目录写入权限并重试'})
 

@@ -6,7 +6,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / 'dist'
-VERSION = '1.0.0'
+VERSION = '1.0.1'
 
 
 def main():
@@ -18,21 +18,26 @@ def main():
         'outputs/launcher_help.html', 'outputs/auto-ai.js', 'outputs/.env.example',
         'outputs/安装说明.md', 'source/auto.js', 'packaging/requirements-build.txt',
         'packaging/ChaoxingAI.spec', 'packaging/build_windows.ps1', 'packaging/package_release.py',
-        'packaging/verify_windows.py', 'packaging/RELEASE-v1.0.0.md']
+        'packaging/verify_windows.py', 'packaging/RELEASE-v1.0.0.md', 'packaging/RELEASE-v1.0.1.md']
     public_sources += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'tests').glob('test_*')) if p.is_file()]
     license_files = sorted((ROOT / 'packaging' / 'licenses').glob('*.txt'))
     public_sources += [p.relative_to(ROOT).as_posix() for p in license_files]
-    source_archive = DIST / 'ChaoxingAI-source-v1.0.0.zip'
+    source_archive = DIST / ('ChaoxingAI-source-v' + VERSION + '.zip')
     with zipfile.ZipFile(source_archive, 'w', zipfile.ZIP_DEFLATED) as archive:
         for name in public_sources:
             archive.write(ROOT / name, 'ChaoxingAI-source/' + name)
-    quickstart = '''ChaoxingAI Windows 启动器 1.0.0
+    quickstart = '''ChaoxingAI Windows 启动器 VERSION
 
 1. 将本压缩包完整解压到任意普通文件夹。
 2. 双击 ChaoxingAI-Launcher.exe，无需安装 Python。
 3. 首次使用点击“获取 API 密钥”，在 DeepSeek 官方平台创建密钥。
 4. 将密钥粘贴到启动器，点击“测试并保存，启动服务”。
 5. 点击“安装 / 更新浏览器脚本”，安装普通脚本，再打开学习通。
+
+本次升级请同时使用启动器 1.0.1 与浏览器脚本 4.0.11-ai。
+可从脚本猫更新，也可在脚本猫扩展中导入本包的 ChaoxingAI.user.js。
+超时、断线或服务繁忙最多尝试 3 次；仍失败时，恢复网络后点击题目页顶部“重试失败题目”。
+重试不会再次分析已经成功的题目；失败题目未核对时不会自动提交。
 
 以后只要双击启动器，服务会自动启动。可以最小化，退出会停止服务。
 密钥在 Windows 当前用户账号下加密保存，不随本压缩包分发。
@@ -44,11 +49,12 @@ source-code.zip 中提供与本构建对应的完整项目源码和构建脚本�
 
 项目：https://github.com/jinzhengwang60-del/ChaoxingAI
 脚本：https://scriptcat.org/zh-CN/script-show-page/8102
-'''
+'''.replace('VERSION', VERSION)
     package = DIST / ('ChaoxingAI-Windows-v' + VERSION + '.zip')
     with zipfile.ZipFile(package, 'w', zipfile.ZIP_DEFLATED) as archive:
         prefix = 'ChaoxingAI-Windows/'
         archive.write(exe, prefix + exe.name)
+        archive.write(ROOT / 'outputs/auto-ai.js', prefix + 'ChaoxingAI.user.js')
         archive.writestr(prefix + '快速开始.txt', quickstart.encode('utf-8-sig'))
         archive.write(ROOT / 'LICENSE', prefix + 'LICENSE.txt')
         archive.write(ROOT / 'NOTICE.md', prefix + 'NOTICE.md')

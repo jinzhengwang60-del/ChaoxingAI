@@ -12,7 +12,7 @@ from urllib.request import build_opener, ProxyHandler
 
 import server
 
-APP_VERSION = '1.0.0'
+APP_VERSION = '1.0.1'
 DEFAULT_MODEL = 'deepseek-flash'
 SCRIPT_URL = 'https://scriptcat.org/zh-CN/script-show-page/8102'
 KEY_URL = 'https://platform.deepseek.com/api_keys'

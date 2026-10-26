@@ -52,6 +52,10 @@ class Tests(unittest.TestCase):
                 with self.assertRaises(HTTPError) as error:
                     post(json.dumps(dict(self.data,question='uncached')).encode())
                 self.assertEqual(error.exception.code,504)
+                detail = json.load(error.exception)
+                self.assertEqual(detail['error'], '模拟超时')
+                self.assertIn('retryable', detail)
+                self.assertEqual(detail['attempts'], 1)
         finally:
             http.shutdown(); http.server_close(); thread.join()
 

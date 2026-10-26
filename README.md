@@ -1,6 +1,6 @@
 # ChaoxingAI
 
-学习通章节测试 AI 辅助脚本与本地服务。浏览器脚本版本：**4.0.10-ai**；Windows 启动器版本：**1.0.0**。
+学习通章节测试 AI 辅助脚本与本地服务。浏览器脚本版本：**4.0.11-ai**；Windows 启动器版本：**1.0.1**。
 
 浏览器脚本提取题目，向本机服务请求 DeepSeek 建议，并在页面显示推荐、置信度和解析。当前版本会自动选择或替换答案；所有题目核对通过后，倒计时 5 秒自动提交，进入已知批阅结果页后继续原章节流程。
 
@@ -8,9 +8,9 @@
 
 ## Windows 用户：双击启动（推荐）
 
-[**下载 Windows 启动器 v1.0.0**](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/download/launcher-v1.0.0/ChaoxingAI-Windows-v1.0.0.zip) · [版本说明与校验文件](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/tag/launcher-v1.0.0) · [安装浏览器脚本](https://scriptcat.org/zh-CN/script-show-page/8102)
+[**下载 Windows 启动器 v1.0.1**](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/download/launcher-v1.0.1/ChaoxingAI-Windows-v1.0.1.zip) · [版本说明与校验文件](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/tag/launcher-v1.0.1) · [安装浏览器脚本](https://scriptcat.org/zh-CN/script-show-page/8102)
 
-使用 `ChaoxingAI-Windows-v1.0.0.zip` 发布包，完整解压后双击 **ChaoxingAI-Launcher.exe**。不需要安装 Python，也不需要修改 `.env`。
+使用 `ChaoxingAI-Windows-v1.0.1.zip` 发布包，完整解压后双击 **ChaoxingAI-Launcher.exe**。不需要安装 Python，也不需要修改 `.env`。
 
 1. 首次打开点击“获取 API 密钥”，在 DeepSeek 官方平台注册或登录并创建密钥。
 2. 粘贴完整密钥，点击“测试并保存，启动服务”。测试会真实请求一道很短的示例题，可能产生少量 API 费用。
@@ -20,6 +20,8 @@
 密钥使用 Windows 当前账号加密保存到 `%LOCALAPPDATA%\ChaoxingAI\settings.json`，缓存也在同一目录。配置不随发布包分发。模型默认 `deepseek-flash`；其他模型可在“高级设置”填写。每个用户仍需自己的 API 密钥，API 可能收费。
 
 已有旧配置可通过“导入原 .env”读取，不会修改原文件。启动器和原 `server.py` 都使用 8787 端口，切换前先停止旧服务。重复打开启动器会提示使用已有窗口。
+
+本次升级请同时更新启动器与浏览器脚本；同一 Windows 账号继续读取原有加密配置。发布包内也提供 `ChaoxingAI.user.js`，可在脚本猫扩展中导入普通脚本。
 
 发布包在 GitHub Releases 下载，不需要使用绿色 Code 按钮下载源码。开发者也可以按下方构建步骤生成。程序未做发布者代码签名，首次运行时 Windows 可能显示发布者未知。
 
@@ -47,6 +49,8 @@
 - 根据可见选项字母和正文匹配答案；判断题按对/错语义识别，不假设 A 永远代表正确。
 - 自动替换已有选择；多选会取消多余选项并补选。无建议、控件异常或状态不匹配时停止。人工干预或暂停会阻止自动提交。
 - 全部题目实际选择与建议一致后，5 秒倒计时自动提交。提交尝试记录在当前标签页 sessionStorage 中，刷新不重复提交；新标签页不共享该保护。
+- DeepSeek 超时、临时断线或繁忙时，每题最多尝试 3 次，采用递增等待间隔；整体重试预算约 225 秒。密钥、余额、模型设置或证书验证错误直接提示。
+- 仍失败时保留当前题目，恢复后点击顶部“重试失败题目”，不会重复请求成功题目。人工修改和暂停保护继续生效；失败题目未核对时不提交。
 - 提交接口缺失、网站拒绝或结果未知时停留。网站确认框需手动处理。已发出的请求不能由暂停按钮撤回。
 - 只通过已有批阅结果页分支确认任务完成。网站布局和接口变化可能导致功能失效。
 - 图片沿用原提取规则，本服务不下载或识别图片。
@@ -85,11 +89,12 @@ python -m unittest discover -s tests -p "test_*.py" -v
 node tests/test_selection.cjs
 node tests/test_submission.cjs
 node tests/test_browser.cjs
+node tests/test_recovery.cjs
 node tests/test_chapters.cjs
 node tests/test_startup.cjs
 ```
 
-模拟测试覆盖选项匹配、判断题、已有答案替换、异常暂停、提交保护、初始化和章节调度、本地 HTTP 与缓存。用户已反馈 4.0.8-ai 在其课程中成功运行；4.0.9-ai 仅移除留言面板并更新版本号。4.0.10-ai 移除旧题库配置面板及其输入框、保存按钮初始化逻辑，AI 作答、提交和章节推进代码保持不变。这不等于所有课程和浏览器都经过验证。
+模拟测试覆盖选项匹配、判断题、已有答案替换、异常暂停、提交保护、初始化和章节调度、本地 HTTP 与缓存。4.0.11-ai 与启动器 1.0.1 增加网络失败恢复，覆盖临时失败重试、连续失败、限流等待、证书错误、空白保活读取、错误不缓存、仅重试失败题目及人工修改保护。这不等于已验证真实收费 API、所有课程和浏览器。
 
 启动器测试另覆盖 Windows 加密配置、单实例、端口冲突、服务停止和重启、配置隔离、连接错误提示及实际 Tk 按钮回调。测试使用模拟密钥和响应，不调用收费 API。
 
@@ -104,7 +109,7 @@ node tests/test_startup.cjs
 构建依赖安装在 `work/desktop-build-env`，不会修改系统 Python 包。输出位于 `dist/`：
 
 - `ChaoxingAI-Launcher.exe`：单文件图形启动器；
-- `ChaoxingAI-Windows-v1.0.0.zip`：用户分发包，含启动器、快速开始、许可证及完整源码压缩包；
+- `ChaoxingAI-Windows-v1.0.1.zip`：用户分发包，含启动器、浏览器脚本、快速开始、许可证及完整源码压缩包；
 - `SHA256SUMS.txt`：分发包校验值。
 
 构建脚本会运行打包后的离线自检，移除子进程中的 Python/Conda 路径，检查界面运行环境、加密存储、本地 HTTP 服务及包内无密钥文件。无需在用户机器上安装构建工具。

@@ -212,7 +212,7 @@ class Launcher:
         except ValueError as error:
             self._status(str(error), 'error')
             return
-        self._status('正在真实测试 API 连接，请稍候……')
+        self._status('正在真实测试 API 连接；网络波动时会自动重试，最多尝试 3 次，请稍候……')
         self.badge.set('连接测试中')
         def operation():
             core.test_connection(settings)
