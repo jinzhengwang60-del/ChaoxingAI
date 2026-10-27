@@ -18,7 +18,9 @@ def main():
         'outputs/launcher_help.html', 'outputs/auto-ai.js', 'outputs/.env.example',
         'outputs/安装说明.md', 'source/auto.js', 'packaging/requirements-build.txt',
         'packaging/ChaoxingAI.spec', 'packaging/build_windows.ps1', 'packaging/package_release.py',
-        'packaging/verify_windows.py', 'packaging/RELEASE-v1.0.0.md', 'packaging/RELEASE-v1.0.1.md']
+        'packaging/verify_windows.py', 'packaging/RELEASE-v1.0.0.md', 'packaging/RELEASE-v1.0.1.md',
+        'packaging/build_panel.py', 'packaging/preview_panel.py', 'packaging/RELEASE-script-v4.1.0.md',
+        'ui/chapter-panel.js', 'ui/chapter-panel.css', 'ui/preview.html']
     public_sources += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'tests').glob('test_*')) if p.is_file()]
     license_files = sorted((ROOT / 'packaging' / 'licenses').glob('*.txt'))
     public_sources += [p.relative_to(ROOT).as_posix() for p in license_files]
@@ -34,7 +36,7 @@ def main():
 4. 将密钥粘贴到启动器，点击“测试并保存，启动服务”。
 5. 点击“安装 / 更新浏览器脚本”，安装普通脚本，再打开学习通。
 
-本次升级请同时使用启动器 1.0.1 与浏览器脚本 4.0.11-ai。
+启动器版本为 1.0.1，浏览器脚本版本以包内 ChaoxingAI.user.js 的 @version 为准。
 可从脚本猫更新，也可在脚本猫扩展中导入本包的 ChaoxingAI.user.js。
 超时、断线或服务繁忙最多尝试 3 次；仍失败时，恢复网络后点击题目页顶部“重试失败题目”。
 重试不会再次分析已经成功的题目；失败题目未核对时不会自动提交。

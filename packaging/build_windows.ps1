@@ -2,6 +2,8 @@ param([string]$Python = 'python')
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $projectRoot
+& $Python -B packaging/build_panel.py --check
+if ($LASTEXITCODE -ne 0) { throw 'Panel assets must be bundled before packaging.' }
 $buildPython = Join-Path $projectRoot 'work\desktop-build-env\Scripts\python.exe'
 if (-not (Test-Path -LiteralPath $buildPython)) {
     & $Python -m venv (Join-Path $projectRoot 'work\desktop-build-env')

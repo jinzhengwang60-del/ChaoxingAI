@@ -1,6 +1,6 @@
 # ChaoxingAI
 
-学习通章节测试 AI 辅助脚本与本地服务。浏览器脚本版本：**4.0.11-ai**；Windows 启动器版本：**1.0.1**。
+学习通章节测试 AI 辅助脚本与本地服务。当前源码的浏览器脚本版本：**4.1.0-ai**；Windows 启动器版本：**1.0.1**。
 
 浏览器脚本提取题目，向本机服务请求 DeepSeek 建议，并在页面显示推荐、置信度和解析。当前版本会自动选择或替换答案；所有题目核对通过后，倒计时 5 秒自动提交，进入已知批阅结果页后继续原章节流程。
 
@@ -21,7 +21,7 @@
 
 已有旧配置可通过“导入原 .env”读取，不会修改原文件。启动器和原 `server.py` 都使用 8787 端口，切换前先停止旧服务。重复打开启动器会提示使用已有窗口。
 
-本次升级请同时更新启动器与浏览器脚本；同一 Windows 账号继续读取原有加密配置。发布包内也提供 `ChaoxingAI.user.js`，可在脚本猫扩展中导入普通脚本。
+4.1.0-ai 重做课程内面板，只需更新浏览器脚本，已有 1.0.1 启动器可继续使用。同一 Windows 账号继续读取原有加密配置。旧版 Windows 1.0.1 发布包内附带的是 4.0.11-ai，获取本次界面更新时请另行更新浏览器脚本。脚本猫是否已更新，以页面显示版本为准；源码用户可以直接导入 `outputs/auto-ai.js`。
 
 发布包在 GitHub Releases 下载，不需要使用绿色 Code 按钮下载源码。开发者也可以按下方构建步骤生成。程序未做发布者代码签名，首次运行时 Windows 可能显示发布者未知。
 
@@ -45,6 +45,9 @@
 
 ## 功能与边界
 
+- 课程内面板按“当前状态、本页任务、常用设置、运行记录”排列；右侧课程目录与原有导航保留。进度只统计当前任务页面，不代表整门课程。
+- 常用设置保留视频倍速、复习模式与 AI 辅助测验。运行记录默认显示最近 3 条，展开后查看最多 50 条；重要异常在顶部提示。
+- “检测连接”只检查本机服务，不调用收费 AI，也不验证 DeepSeek 密钥或上游连通性。题目页保留暂停、失败重试、自动选择与自动提交流程。
 - 支持原脚本题目页面中的单选、多选和判断题。尚未识别的题型或页面结构会阻止自动提交。
 - 根据可见选项字母和正文匹配答案；判断题按对/错语义识别，不假设 A 永远代表正确。
 - 自动替换已有选择；多选会取消多余选项并补选。无建议、控件异常或状态不匹配时停止。人工干预或暂停会阻止自动提交。
@@ -73,8 +76,9 @@ outputs/desktop_core.py 加密配置、单实例与服务控制
 outputs/launcher_help.html 随程序附带的首次配置教程
 outputs/.env.example    配置示例
 outputs/安装说明.md     使用与排错说明
+ui/                    课程内面板样式、组件与模拟课程页面
 tests/                  本地模拟回归测试
-packaging/              Windows 打包与校验脚本
+packaging/              面板构建、预览及 Windows 打包与校验脚本
 NOTICE.md               来源与修改说明
 LICENSE                 GPL v3 许可证文本
 ```
@@ -85,6 +89,7 @@ LICENSE                 GPL v3 许可证文本
 
 ```powershell
 node --check outputs/auto-ai.js
+python -B packaging/build_panel.py --check
 python -m unittest discover -s tests -p "test_*.py" -v
 node tests/test_selection.cjs
 node tests/test_submission.cjs
@@ -92,11 +97,27 @@ node tests/test_browser.cjs
 node tests/test_recovery.cjs
 node tests/test_chapters.cjs
 node tests/test_startup.cjs
+node tests/test_panel.cjs
 ```
 
 模拟测试覆盖选项匹配、判断题、已有答案替换、异常暂停、提交保护、初始化和章节调度、本地 HTTP 与缓存。4.0.11-ai 与启动器 1.0.1 增加网络失败恢复，覆盖临时失败重试、连续失败、限流等待、证书错误、空白保活读取、错误不缓存、仅重试失败题目及人工修改保护。这不等于已验证真实收费 API、所有课程和浏览器。
 
+4.1.0-ai 另覆盖面板状态与数量、未保存输入保留、设置开关、日志限制、安全文本显示、本地服务检测的错误与超时处理。界面预览使用模拟课程和连接状态，不进行真实答题或提交。
+
 启动器测试另覆盖 Windows 加密配置、单实例、端口冲突、服务停止和重启、配置隔离、连接错误提示及实际 Tk 按钮回调。测试使用模拟密钥和响应，不调用收费 API。
+
+## 修改与预览课程内面板
+
+样式和组件分别位于 `ui/chapter-panel.css`、`ui/chapter-panel.js`。修改后重新合并到独立用户脚本，并生成可导入文件：
+
+```powershell
+python -B packaging/build_panel.py --output dist/ChaoxingAI-4.1.0.user.js
+python -B packaging/preview_panel.py
+```
+
+打开 <http://127.0.0.1:8879/> 查看模拟课程，可切换视频、测验、待处理、错误、完成和空任务状态。预览只监听本机地址，所有课程及 AI 请求均为模拟，不读取密钥或真实课程。预览端口 8879 与日常服务端口 8787 分开。
+
+`dist/ChaoxingAI-4.1.0.user.js` 与当前 `outputs/auto-ai.js` 内容一致，可在脚本猫扩展中导入为普通脚本。预览服务与模拟数据不包含在安装文件中。浏览器面板更新无需重新构建 Windows 启动器。
 
 ## 构建 Windows 发布包
 

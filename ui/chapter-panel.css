@@ -1,0 +1,118 @@
+:root{color-scheme:light}
+body.cxai-panel-body{margin:0;background:#f5f7fb;color:#243249;font:14px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+#cxai-panel,#cxai-panel *,.cxai-question-controls,.cxai-question-controls *{box-sizing:border-box}
+#cxai-panel{--blue:#3478f6;--ink:#243249;--muted:#7a879b;--line:#e8edf5;max-width:1020px;margin:0 auto;padding:26px 32px 30px}
+#cxai-panel button,#cxai-panel input,#cxai-panel a,.cxai-question-controls button{font:inherit}
+#cxai-panel button,.cxai-question-controls button{cursor:pointer}
+#cxai-panel button:disabled,.cxai-question-controls button:disabled{cursor:default;opacity:.5}
+#cxai-panel :focus-visible,.cxai-question-controls :focus-visible{outline:3px solid #a4c6ff;outline-offset:3px}
+#cxai-panel .cxai-header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
+#cxai-panel .cxai-brand{display:flex;align-items:center;gap:12px;min-width:0}
+#cxai-panel .cxai-brand-mark{display:grid;place-items:center;flex:0 0 40px;height:40px;border-radius:12px;background:#3478f6;color:white;box-shadow:0 5px 13px #3478f624}
+#cxai-panel svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+#cxai-panel h1{font-size:19px;line-height:1.25;letter-spacing:-.3px;margin:0;font-weight:700}
+#cxai-panel .cxai-brand-sub{margin-top:3px;font-size:11px;color:var(--muted);letter-spacing:.4px}
+#cxai-panel .cxai-version{margin-left:7px;font-size:11px;font-weight:500;letter-spacing:0;color:var(--muted)}
+#cxai-panel .cxai-health-group{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+#cxai-panel .cxai-health{display:flex;align-items:center;gap:7px;color:#6d7c90;font-size:12px;white-space:nowrap}
+#cxai-panel .cxai-dot{width:6px;height:6px;border-radius:50%;background:#9aa7b8;flex-shrink:0}
+#cxai-panel .cxai-health[data-tone=success] .cxai-dot{background:#20b68a}
+#cxai-panel .cxai-health[data-tone=warning] .cxai-dot{background:#e4a12c}
+#cxai-panel .cxai-text-button{display:inline-flex;gap:5px;align-items:center;border:0;background:transparent;color:#62809f;font-size:12px;padding:5px 2px;border-radius:5px}
+#cxai-panel .cxai-text-button svg{width:14px;height:14px}
+#cxai-panel .cxai-overview{padding:22px 24px 18px;border:1px solid #dfe9fc;border-radius:15px;background:linear-gradient(115deg,#f0f6ff,#f9fbff);margin-bottom:20px}
+#cxai-panel .cxai-overview-top{display:flex;gap:14px;align-items:flex-start}
+#cxai-panel .cxai-state-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;background:#e2edff;color:var(--blue);border-radius:13px;margin-top:2px}
+#cxai-panel .cxai-state-icon svg{width:21px;height:21px}
+#cxai-panel .cxai-eyebrow{color:#6980a0;font-size:11px;letter-spacing:1px;margin:0 0 4px}
+#cxai-panel #cxai-status-title{margin:0;color:#24466f;font-size:21px;font-weight:650;line-height:1.45;overflow-wrap:anywhere}
+#cxai-panel #cxai-status-detail{color:#71839c;font-size:12px;margin:5px 0 0;overflow-wrap:anywhere}
+#cxai-panel .cxai-progress-head{display:flex;justify-content:space-between;gap:12px;margin-top:20px;color:#6d819f;font-size:11px}
+#cxai-panel #cxai-progress-label{font-variant-numeric:tabular-nums;color:#46658c}
+#cxai-panel progress{appearance:none;display:block;width:100%;height:5px;border:0;border-radius:5px;background:#e0e9f7;margin-top:8px;overflow:hidden}
+#cxai-panel progress::-webkit-progress-bar{background:#e0e9f7;border-radius:5px}
+#cxai-panel progress::-webkit-progress-value{background:#4587fb;border-radius:5px;transition:width .3s}
+#cxai-panel progress::-moz-progress-bar{background:#4587fb;border-radius:5px}
+#cxai-panel .cxai-metrics{display:flex;gap:19px;flex-wrap:wrap;margin-top:11px;color:#8390a3;font-size:11px}
+#cxai-panel .cxai-metrics strong{color:#567294;font-weight:600;margin-left:4px;font-variant-numeric:tabular-nums}
+#cxai-panel .cxai-section{border:1px solid var(--line);background:#fff;border-radius:14px;margin-top:16px;overflow:hidden;box-shadow:0 2px 5px #283f6003}
+#cxai-panel .cxai-section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:17px 21px 13px}
+#cxai-panel h2{font-size:14px;letter-spacing:.1px;margin:0;font-weight:650;color:#34445b}
+#cxai-panel .cxai-caption{font-size:11px;color:#97a2b1}
+#cxai-panel #joblist{padding:0 21px 8px}
+#cxai-panel .cxai-task{display:flex;align-items:center;gap:12px;padding:15px 0;border-top:1px solid #f0f3f8}
+#cxai-panel .cxai-task:first-child{border-top:0}
+#cxai-panel .cxai-task-icon{display:grid;place-items:center;flex:0 0 35px;height:35px;background:#eff3ff;color:#6a86dc;border-radius:10px}
+#cxai-panel .cxai-task[data-type=work] .cxai-task-icon{background:#f2efff;color:#9a7ad7}
+#cxai-panel .cxai-task[data-type=document] .cxai-task-icon{background:#eaf7f5;color:#53a797}
+#cxai-panel .cxai-task[data-state=done] .cxai-task-icon{background:#eaf7f1;color:#52ad89}
+#cxai-panel .cxai-task-icon svg{width:17px;height:17px}
+#cxai-panel .cxai-task-copy{flex:1;min-width:0}
+#cxai-panel .cxai-task-name{font-size:13px;line-height:1.5;overflow-wrap:anywhere;color:#415069}
+#cxai-panel .cxai-task-detail{font-size:11px;color:#9aa4b2;margin-top:3px;overflow-wrap:anywhere}
+#cxai-panel .cxai-task-badge{flex-shrink:0;padding:3px 9px;border-radius:6px;font-size:10px;line-height:1.7;color:#99a3b3;background:#f4f6f9;white-space:nowrap}
+#cxai-panel .cxai-task[data-state=running] .cxai-task-badge{color:#4b81d5;background:#eef4ff}
+#cxai-panel .cxai-task[data-state=done] .cxai-task-badge{color:#48a481;background:#eef8f2}
+#cxai-panel .cxai-task[data-state=hold] .cxai-task-badge{color:#be903c;background:#fff6e6}
+#cxai-panel .cxai-empty{padding:26px 12px 31px;text-align:center;color:#95a2b5;font-size:12px}
+#cxai-panel .cxai-empty svg{margin:0 auto 10px;color:#afbed4;width:27px;height:27px}
+#cxai-panel .cxai-settings-grid{display:grid;grid-template-columns:1.2fr 1fr 1fr;padding:5px 21px 20px;gap:0}
+#cxai-panel .cxai-setting{padding:0 22px;border-left:1px solid var(--line);min-width:0}
+#cxai-panel .cxai-setting:first-child{padding-left:0;border-left:0}
+#cxai-panel .cxai-setting:last-child{padding-right:0}
+#cxai-panel .cxai-setting-title{display:block;font-size:12px;color:#59677a;margin:0 0 9px}
+#cxai-panel .cxai-setting-label{display:flex;align-items:center;justify-content:space-between;gap:9px}
+#cxai-panel .cxai-setting-help{font-size:10px;color:#9ca7b6;margin:8px 0 0;line-height:1.6}
+#cxai-panel .cxai-rate-controls{display:flex;align-items:center;gap:6px}
+#cxai-panel .cxai-rate-field{position:relative;min-width:0;max-width:92px}
+#cxai-panel #unrivalRate{width:100%;min-width:65px;border:1px solid #e1e8f2;border-radius:7px;padding:6px 19px 6px 10px;outline-offset:2px;background:#fcfdff;color:#54667e;font-size:12px;height:32px}
+#cxai-panel #unrivalRate{appearance:textfield;-moz-appearance:textfield}
+#cxai-panel #unrivalRate::-webkit-inner-spin-button,#cxai-panel #unrivalRate::-webkit-outer-spin-button{appearance:none;margin:0}
+#cxai-panel .cxai-rate-unit{position:absolute;right:10px;top:5px;color:#a1adbc;font-size:12px;pointer-events:none}
+#cxai-panel #updateRateButton{border:1px solid #e1e8f2;background:#fff;color:#6c809d;border-radius:7px;padding:5px 9px;font-size:11px;white-space:nowrap;height:32px}
+#cxai-panel #cxai-rate-feedback{font-size:10px;min-height:16px;color:#8b9db3;margin-top:4px}
+#cxai-panel #cxai-rate-feedback[data-tone=error]{color:#d2766d}
+#cxai-panel .cxai-switch{position:relative;display:inline-block;flex:0 0 31px;width:31px;height:18px;min-height:18px;border:0;border-radius:18px;background:#d7dfeb;padding:0;vertical-align:middle;transition:background .15s}
+#cxai-panel .cxai-switch:after{content:"";position:absolute;width:12px;height:12px;background:white;left:3px;top:3px;border-radius:50%;box-shadow:0 1px 3px #30446115;transition:transform .15s}
+#cxai-panel .cxai-switch[aria-checked=true]{background:#3d81f8}
+#cxai-panel .cxai-switch[aria-checked=true]:after{transform:translateX(13px)}
+#cxai-panel .cxai-setting-state{font-size:11px;color:#7e91aa}
+#cxai-panel .cxai-policy{display:flex;align-items:flex-start;gap:7px;font-size:10px;color:#8494a9;background:#fafbfd;border-top:1px solid #f0f3f8;padding:11px 21px}
+#cxai-panel .cxai-policy svg{width:13px;height:13px;margin-top:2px;color:#91a6c1}
+#cxai-panel .cxai-log-preview{padding:0 21px 8px}
+#cxai-panel .cxai-log-entry{display:flex;gap:12px;padding:7px 0;font-size:11px;line-height:1.7;align-items:flex-start}
+#cxai-panel .cxai-log-time{color:#a5afbc;font-size:10px;flex:0 0 52px;font-variant-numeric:tabular-nums;letter-spacing:.2px;padding-top:1px}
+#cxai-panel .cxai-log-body{color:#8190a5;overflow-wrap:anywhere;min-width:0}
+#cxai-panel .cxai-log-entry[data-level=warning] .cxai-log-body{color:#bb914c}
+#cxai-panel .cxai-log-entry[data-level=error] .cxai-log-body{color:#cb786d}
+#cxai-panel .cxai-log-entry[data-level=success] .cxai-log-body{color:#679c8c}
+#cxai-panel details{border-top:1px solid #f0f3f8}
+#cxai-panel summary{list-style:none;cursor:pointer;padding:10px 21px;color:#92a0b4;font-size:11px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+#cxai-panel summary::-webkit-details-marker{display:none}
+#cxai-panel summary>svg{width:13px;height:13px;transition:transform .15s}
+#cxai-panel details[open]>summary>svg{transform:rotate(180deg)}
+#cxai-panel #result{max-height:290px;overflow:auto;padding:0 21px 13px;scrollbar-width:thin;scrollbar-color:#d9e1ed transparent}
+#cxai-panel details.cxai-more-settings{border:0;margin-top:3px}
+#cxai-panel .cxai-more-body{padding:1px 21px 16px;font-size:11px;color:#91a0b4}
+#cxai-panel .cxai-secondary-button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;border:1px solid #e1e8f2;color:#7185a0;background:#fff;border-radius:7px;padding:6px 11px;margin:5px 6px 3px 0;font-size:11px}
+#cxai-panel .cxai-footer{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:16px 3px 0;font-size:10px;color:#a7b1c0}
+#cxai-panel .cxai-footer a{color:#96a5ba;text-decoration:none}
+#cxai-panel #workPanel{margin-top:18px;min-height:720px}
+#cxai-panel #workWindow{height:calc(100% - 52px);padding:0 10px 10px}
+#cxai-panel #frame_content{width:100%;min-height:780px;height:100%;border:0;border-radius:9px;background:#fff}
+#cxai-panel #videoTime{margin-top:18px}
+#cxai-panel #videoTimeContent{width:100%;height:260px;border:0}
+#cxai-panel .cxai-notice{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 15px;padding:11px 14px;background:#fff7eb;border:1px solid #f5e6cf;border-radius:9px;font-size:11px;color:#ad8650}
+#cxai-panel .cxai-notice[hidden]{display:none}
+#cxai-panel .cxai-notice[data-level=error]{background:#fff3f1;border-color:#f5dcd7;color:#be776d}
+#cxai-panel .cxai-notice button{border:0;background:transparent;padding:0 2px;color:inherit}
+.cxai-question-controls{font:13px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;padding:16px 18px;border:1px solid #dfe9fc;border-radius:12px;background:#f6f9ff;margin:16px 12px 24px;color:#56749a}
+.cxai-question-controls .cxai-question-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cxai-question-controls strong{font-size:14px;margin-right:auto;color:#36597f}
+.cxai-question-controls button{font-size:12px;border:1px solid #dce6f5;background:#fff;border-radius:7px;color:#6480a1;padding:6px 11px}
+.cxai-question-controls button:last-child{color:#3478f6;background:#eef4ff;border-color:#dce8fc}
+.cxai-question-controls p{font-size:11px;color:#7f92ac;margin:10px 0 0}
+pre.cxai-recommendation{font:13px/1.85 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;white-space:pre-wrap;padding:15px 17px;background:#f4f8ff;color:#54739a;border:1px solid #e0eaf9;border-radius:9px;margin:16px 0}
+@media(min-width:1150px){#cxai-panel{padding-top:30px}}
+@media(max-width:700px){#cxai-panel{padding:20px 18px}#cxai-panel .cxai-header{align-items:flex-start}#cxai-panel h1{font-size:17px}#cxai-panel .cxai-brand-mark{flex-basis:35px;height:35px;border-radius:10px}#cxai-panel .cxai-health-group{gap:0;flex-direction:column;align-items:flex-end}#cxai-panel .cxai-health{font-size:10px}#cxai-panel .cxai-text-button{font-size:10px}#cxai-panel .cxai-overview{padding:18px}#cxai-panel #cxai-status-title{font-size:18px}#cxai-panel .cxai-settings-grid{grid-template-columns:1fr;padding-bottom:8px}#cxai-panel .cxai-setting{border:0;border-top:1px solid #f0f3f8;padding:13px 0!important}#cxai-panel .cxai-setting:first-child{border:0;padding-top:0!important}#cxai-panel .cxai-setting-title{margin-bottom:6px}#cxai-panel .cxai-setting-help{margin-top:4px}#cxai-panel .cxai-task{gap:9px}#cxai-panel .cxai-task-name{font-size:12px}#cxai-panel .cxai-caption{font-size:10px}#cxai-panel .cxai-version{display:block;margin:3px 0 0}#cxai-panel #workWindow{padding:0}#cxai-panel .cxai-progress-head{margin-top:16px}}
+@media(prefers-reduced-motion:reduce){#cxai-panel *,#cxai-panel *:after{transition:none!important}}
