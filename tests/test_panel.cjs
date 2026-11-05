@@ -2,14 +2,14 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const source=fs.readFileSync('ui/chapter-panel.js','utf8');
 const css=fs.readFileSync('ui/chapter-panel.css','utf8');
 const userscript=fs.readFileSync('outputs/auto-ai.js','utf8');
-function fixture(responseMode='success') {
+function fixture(responseMode='success', launchError=false) {
   const nodes=new Map();
   const make=()=>({style:{},dataset:{},textContent:'',value:'',innerHTML:'',disabled:false,hidden:false,
     attrs:{},setAttribute(k,v){this.attrs[k]=v;}});
   const doc={activeElement:null,getElementById:id=>{if(!nodes.has(id))nodes.set(id,make());return nodes.get(id);},
     createElement:()=>{const node=make();Object.defineProperty(node,'innerHTML',{set(value){this.value=value.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');}});return node;}};
   const c={};vm.createContext(c);vm.runInContext('const CHAPTER_PANEL_CSS='+JSON.stringify(css)+';\n'+source,c);
-  const panel=c.createChapterPanel(doc,{version:'4.1.0-ai'}), calls=[];
+  const panel=c.createChapterPanel(doc,{version:'4.2.0-ai'}), calls=[];
   const requestHealth=request=>{
     calls.push(request);
     assert.equal(request.url,'http://127.0.0.1:8787/health');assert.equal(request.method,'GET');
@@ -22,8 +22,13 @@ function fixture(responseMode='success') {
     if(responseMode==='abort')request.onabort();
     if(responseMode==='throw')throw Error();
   };
-  panel.mount({requestHealth});
-  return{panel,doc,nodes,calls,get:id=>doc.getElementById(id)};
+  let clock=0, launched=0, nextTimer=0;
+  const timers=new Map();
+  const advance=duration=>{const target=clock+duration;while(true){const item=[...timers].filter(([,v])=>v.at<=target).sort((a,b)=>a[1].at-b[1].at)[0];if(!item)break;timers.delete(item[0]);clock=item[1].at;item[1].fn();}clock=target;};
+  panel.mount({requestHealth,launchService:()=>{launched++;if(launchError)throw Error('blocked');},
+    schedule:(fn,delay)=>{const id=++nextTimer;timers.set(id,{fn,at:clock+delay});return id;},
+    cancel:id=>timers.delete(id),now:()=>clock});
+  return{panel,doc,nodes,calls,timers,advance,launched:()=>launched,setMode:mode=>{responseMode=mode},get:id=>doc.getElementById(id)};
 }
 const ready=fixture();
 assert(ready.get('cxai-health-text').textContent.includes('已连接'));
@@ -35,6 +40,35 @@ const waiting=fixture('pending');waiting.get('cxai-health-check').onclick();asse
 waiting.calls[0].ontimeout();waiting.calls[0].onload({status:200,responseText:'{"ok":true,"service":"ChaoxingAI","configured":true}'});
 assert(waiting.get('cxai-health-text').textContent.includes('检测超时'));
 waiting.get('cxai-health-check').onclick();assert.equal(waiting.calls.length,2);
+const connect=fixture('error');
+assert.equal(connect.get('cxai-connect').hidden,false);
+assert.equal(connect.get('cxai-launch').disabled,false);
+connect.get('cxai-launch').onclick();connect.get('cxai-launch').onclick();
+assert.equal(connect.launched(),1,'repeated clicks must not launch multiple processes');
+assert.equal(connect.get('cxai-health-check').disabled,true);
+assert(!connect.get('cxai-health-text').textContent.includes('已连接'));
+connect.setMode('success');connect.advance(1500);
+assert(connect.get('cxai-health-text').textContent.includes('已连接'));
+assert.equal(connect.get('cxai-connect').hidden,true);assert.equal(connect.timers.size,0);
+assert.equal(connect.get('cxai-launch').hidden,true);
+connect.setMode('error');connect.get('cxai-health-check').onclick();
+assert.equal(connect.get('cxai-connect-title').textContent,'在这里启动，无需打开终端');
+const expired=fixture('error');expired.get('cxai-launch').onclick();expired.advance(60000);
+assert(expired.get('cxai-connect-message').textContent.includes('60 秒'));
+assert.equal(expired.get('cxai-launch').disabled,false);assert.equal(expired.timers.size,0);
+const canceled=fixture('error');canceled.setMode('pending');canceled.get('cxai-launch').onclick();
+canceled.get('cxai-connect-cancel').onclick();
+canceled.calls.at(-1).onload({status:200,responseText:'{"ok":true,"service":"ChaoxingAI","configured":true}'});
+assert(canceled.get('cxai-health-text').textContent.includes('已取消'));
+assert.equal(canceled.timers.size,0);assert.equal(canceled.get('cxai-launch').disabled,false);
+canceled.setMode('success');canceled.get('cxai-health-check').onclick();
+assert(canceled.get('cxai-health-text').textContent.includes('已连接'));
+const blocked=fixture('error',true);blocked.get('cxai-launch').onclick();
+assert(blocked.get('cxai-connect-title').textContent.includes('未能打开'));assert.equal(blocked.timers.size,0);
+const unconfigured=fixture('configuration');unconfigured.get('cxai-launch').onclick();
+unconfigured.advance(1500);assert(!unconfigured.get('cxai-health-text').textContent.includes('已连接'));
+unconfigured.get('cxai-connect-cancel').onclick();
+assert(source.includes("link.href = 'chaoxingai://start'"));
 const tasks=[{type:'video',name:'课程视频',state:'done'},{type:'work',name:'章节测验',state:'running'},{type:'document',name:'讲义',state:'queued'}];
 ready.panel.update({tasks,ready:true});
 assert.equal(ready.get('cxai-progress').value,1);assert.equal(ready.get('cxai-progress').max,3);

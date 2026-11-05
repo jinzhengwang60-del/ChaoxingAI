@@ -1,29 +1,25 @@
 # ChaoxingAI
 
-学习通章节测试 AI 辅助脚本与本地服务。当前源码的浏览器脚本版本：**4.1.0-ai**；Windows 启动器版本：**1.0.1**。
+学习通章节测试 AI 辅助脚本与本地服务。当前源码的浏览器脚本版本：**4.2.0-ai**；Windows 启动器版本：**1.1.0**。
 
 浏览器脚本提取题目，向本机服务请求 DeepSeek 建议，并在页面显示推荐、置信度和解析。当前版本会自动选择或替换答案；所有题目核对通过后，倒计时 5 秒自动提交，进入已知批阅结果页后继续原章节流程。
 
 > AI 建议可能错误，置信度是模型自评；“选择核对通过”只表示页面选择与建议一致，不表示答案正确。请在课程允许的范围内使用。首次使用应观察一个章节的完整流程。
 
-## Windows 用户：双击启动（推荐）
+## Windows 用户：从课程页面启动（推荐）
 
-[**下载 Windows 启动器 v1.0.1**](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/download/launcher-v1.0.1/ChaoxingAI-Windows-v1.0.1.zip) · [版本说明与校验文件](https://github.com/jinzhengwang60-del/ChaoxingAI/releases/tag/launcher-v1.0.1) · [安装浏览器脚本](https://scriptcat.org/zh-CN/script-show-page/8102)
+完整解压新版 `ChaoxingAI-Windows-v1.1.0.zip`，首次双击 **ChaoxingAI-Launcher.exe**。不需要安装 Python，也不需要修改 `.env`。已发布的版本可在 [GitHub Releases](https://github.com/jinzhengwang60-del/ChaoxingAI/releases) 查看，下载时请核对启动器 **1.1.0+** 与浏览器脚本 **4.2.0-ai+**；源码版本不代表网站已经发布。
 
-使用 `ChaoxingAI-Windows-v1.0.1.zip` 发布包，完整解压后双击 **ChaoxingAI-Launcher.exe**。不需要安装 Python，也不需要修改 `.env`。
+1. 已有启动器配置会自动读取。首次使用点击“获取 API 密钥”，在 DeepSeek 官方平台创建并粘贴密钥，点击“测试并保存，启动服务”；测试可能产生少量 API 费用。
+2. 在启动器中点击 **“启用 / 修复页面启动”**，只为当前 Windows 账号启用，无需管理员权限。请保留程序所在文件夹，移动后重新启用。
+3. 在脚本猫扩展中导入包内 **ChaoxingAI.user.js** 为普通脚本，停用其他同类脚本并刷新课程页。也可从[脚本猫](https://scriptcat.org/zh-CN/script-show-page/8102)安装，版本以网页显示为准。
+4. 以后在课程面板点击 **“启动并连接”**，在浏览器提示中允许打开 ChaoxingAI。启动器会读取保存的配置，页面自动等待连接，无需打开终端。已经打开的启动器会收到启动通知，运行中的服务不会重复启动。
 
-1. 首次打开点击“获取 API 密钥”，在 DeepSeek 官方平台注册或登录并创建密钥。
-2. 粘贴完整密钥，点击“测试并保存，启动服务”。测试会真实请求一道很短的示例题，可能产生少量 API 费用。
-3. 显示“服务运行中 / 已就绪”后，点击“安装 / 更新浏览器脚本”，从[脚本猫](https://scriptcat.org/zh-CN/script-show-page/8102)安装普通脚本，刷新课程页面。
-4. 以后双击启动器即可自动读取配置并启动服务；可以最小化，退出会停止服务。
+密钥使用 Windows 当前账号加密保存到 `%LOCALAPPDATA%\ChaoxingAI\settings.json`，缓存也在同一目录。已有配置无需重填。原来只运行 `server.py` 的用户，可点击“导入原 .env”迁移一次，原文件不变。首次测试可能产生少量费用；之后启动服务与检测连接不进行 API 测试。每个用户仍需自己的 API 密钥。
 
-密钥使用 Windows 当前账号加密保存到 `%LOCALAPPDATA%\ChaoxingAI\settings.json`，缓存也在同一目录。配置不随发布包分发。模型默认 `deepseek-flash`；其他模型可在“高级设置”填写。每个用户仍需自己的 API 密钥，API 可能收费。
+窗口最小化可以继续运行；退出会停止服务。页面最多等待 60 秒，取消等待只停止页面检测。未启动、浏览器未允许打开、未完成配置等情况会显示下一步提示；完成后可再次点击。已失败的题目仍使用“重试失败题目”恢复。
 
-已有旧配置可通过“导入原 .env”读取，不会修改原文件。启动器和原 `server.py` 都使用 8787 端口，切换前先停止旧服务。重复打开启动器会提示使用已有窗口。
-
-4.1.0-ai 重做课程内面板，只需更新浏览器脚本，已有 1.0.1 启动器可继续使用。同一 Windows 账号继续读取原有加密配置。旧版 Windows 1.0.1 发布包内附带的是 4.0.11-ai，获取本次界面更新时请另行更新浏览器脚本。脚本猫是否已更新，以页面显示版本为准；源码用户可以直接导入 `outputs/auto-ai.js`。
-
-发布包在 GitHub Releases 下载，不需要使用绿色 Code 按钮下载源码。开发者也可以按下方构建步骤生成。程序未做发布者代码签名，首次运行时 Windows 可能显示发布者未知。
+页面启动可在启动器中停用。旧版 1.0.1 仍可手动启动服务，页面唤起需要升级到 1.1.0。启动器和 `server.py` 共用 8787 端口，切换前先停止旧服务。程序未做发布者代码签名，首次运行时 Windows 可能显示发布者未知。
 
 ## 源码运行方式
 
@@ -47,7 +43,7 @@
 
 - 课程内面板按“当前状态、本页任务、常用设置、运行记录”排列；右侧课程目录与原有导航保留。进度只统计当前任务页面，不代表整门课程。
 - 常用设置保留视频倍速、复习模式与 AI 辅助测验。运行记录默认显示最近 3 条，展开后查看最多 50 条；重要异常在顶部提示。
-- “检测连接”只检查本机服务，不调用收费 AI，也不验证 DeepSeek 密钥或上游连通性。题目页保留暂停、失败重试、自动选择与自动提交流程。
+- “启动并连接”唤起已启用页面启动的 Windows 启动器，并自动检测本地连接。“检测连接”只检查本机服务，不调用收费 AI，也不验证 DeepSeek 密钥或上游连通性。题目页流程继续使用原有暂停、失败重试及核对保护。
 - 支持原脚本题目页面中的单选、多选和判断题。尚未识别的题型或页面结构会阻止自动提交。
 - 根据可见选项字母和正文匹配答案；判断题按对/错语义识别，不假设 A 永远代表正确。
 - 自动替换已有选择；多选会取消多余选项并补选。无建议、控件异常或状态不匹配时停止。人工干预或暂停会阻止自动提交。
@@ -72,7 +68,8 @@ source/auto.js          用户提供的原脚本（保留原件）
 outputs/auto-ai.js      当前浏览器脚本
 outputs/server.py       本地 AI 服务
 outputs/launcher.py     Windows 配置向导
-outputs/desktop_core.py 加密配置、单实例与服务控制
+outputs/desktop_core.py 加密配置、单实例通知与服务控制
+outputs/page_bridge.py  当前用户的页面启动关联及固定链接校验
 outputs/launcher_help.html 随程序附带的首次配置教程
 outputs/.env.example    配置示例
 outputs/安装说明.md     使用与排错说明
@@ -106,18 +103,20 @@ node tests/test_panel.cjs
 
 启动器测试另覆盖 Windows 加密配置、单实例、端口冲突、服务停止和重启、配置隔离、连接错误提示及实际 Tk 按钮回调。测试使用模拟密钥和响应，不调用收费 API。
 
+4.2.0-ai 与启动器 1.1.0 新增页面启动：测试覆盖固定链接校验、注入参数拒绝、当前用户隔离测试关联的启用/修复/停用、单实例启动通知、停止后重启，以及等待超时、取消和迟到回应处理。测试不修改正式页面启动关联，不使用真实密钥。
+
 ## 修改与预览课程内面板
 
 样式和组件分别位于 `ui/chapter-panel.css`、`ui/chapter-panel.js`。修改后重新合并到独立用户脚本，并生成可导入文件：
 
 ```powershell
-python -B packaging/build_panel.py --output dist/ChaoxingAI-4.1.0.user.js
+python -B packaging/build_panel.py --output dist/ChaoxingAI-4.2.0.user.js
 python -B packaging/preview_panel.py
 ```
 
 打开 <http://127.0.0.1:8879/> 查看模拟课程，可切换视频、测验、待处理、错误、完成和空任务状态。预览只监听本机地址，所有课程及 AI 请求均为模拟，不读取密钥或真实课程。预览端口 8879 与日常服务端口 8787 分开。
 
-`dist/ChaoxingAI-4.1.0.user.js` 与当前 `outputs/auto-ai.js` 内容一致，可在脚本猫扩展中导入为普通脚本。预览服务与模拟数据不包含在安装文件中。浏览器面板更新无需重新构建 Windows 启动器。
+`dist/ChaoxingAI-4.2.0.user.js` 与当前 `outputs/auto-ai.js` 内容一致，可在脚本猫扩展中导入为普通脚本。预览服务与模拟数据不包含在安装文件中。本次页面唤起需要同时更新 Windows 启动器至 1.1.0；后续仅样式调整不一定需要重建启动器。
 
 ## 构建 Windows 发布包
 
@@ -130,7 +129,7 @@ python -B packaging/preview_panel.py
 构建依赖安装在 `work/desktop-build-env`，不会修改系统 Python 包。输出位于 `dist/`：
 
 - `ChaoxingAI-Launcher.exe`：单文件图形启动器；
-- `ChaoxingAI-Windows-v1.0.1.zip`：用户分发包，含启动器、浏览器脚本、快速开始、许可证及完整源码压缩包；
+- `ChaoxingAI-Windows-v1.1.0.zip`：用户分发包，含启动器、浏览器脚本、快速开始、许可证及完整源码压缩包；
 - `SHA256SUMS.txt`：分发包校验值。
 
 构建脚本会运行打包后的离线自检，移除子进程中的 Python/Conda 路径，检查界面运行环境、加密存储、本地 HTTP 服务及包内无密钥文件。无需在用户机器上安装构建工具。

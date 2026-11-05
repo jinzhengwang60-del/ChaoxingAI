@@ -46,6 +46,8 @@ class DesktopTests(unittest.TestCase):
         try:
             with self.assertRaises(RuntimeError):
                 core.SingleInstance(self.directory)
+            self.assertTrue(instance.take_activation())
+            self.assertFalse(instance.take_activation())
         finally:
             instance.close()
         second = core.SingleInstance(self.directory)

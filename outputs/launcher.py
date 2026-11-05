@@ -11,14 +11,16 @@ from tkinter import filedialog, messagebox, ttk
 import webbrowser
 
 import desktop_core as core
+import page_bridge
 import server
 
 TITLE = 'ChaoxingAI 启动器'
 
 
 class Launcher:
-    def __init__(self, root, data_dir):
+    def __init__(self, root, data_dir, instance=None):
         self.root = root
+        self.instance = instance
         self.store = core.SettingsStore(data_dir)
         self.service = core.ServiceController(data_dir)
         self.events = queue.Queue()
@@ -32,6 +34,7 @@ class Launcher:
         self.reveal = tk.BooleanVar(value=False)
         self.status = tk.StringVar(value='首次使用：获取密钥，粘贴后点击“测试并保存”。')
         self.badge = tk.StringVar(value='等待配置')
+        self.bridge_status = tk.StringVar()
         self._build()
         self.root.protocol('WM_DELETE_WINDOW', self.close)
         self.root.report_callback_exception = self._callback_error
@@ -46,6 +49,7 @@ class Launcher:
             self.autostart_job = self.root.after(120, self.start_saved)
         self.key.trace_add('write', self._edited)
         self.model.trace_add('write', self._edited)
+        self._bridge_status()
         self.poll_job = self.root.after(100, self._drain)
 
     def _build(self):
@@ -91,7 +95,7 @@ class Launcher:
         header.columnconfigure(0, weight=1)
         ttk.Label(header, text='ChaoxingAI', style='Title.TLabel').grid(row=0, column=0, sticky='w')
         ttk.Label(header, textvariable=self.badge, style='Badge.TLabel').grid(row=0, column=1, sticky='e')
-        ttk.Label(body, text='本地连接助手  /  配置一次，以后双击启动', style='Muted.TLabel').grid(row=1, column=0, sticky='w', pady=(4, 18))
+        ttk.Label(body, text='本地连接助手 v' + core.APP_VERSION + '  /  配置一次，以后在课程页启动', style='Muted.TLabel').grid(row=1, column=0, sticky='w', pady=(4, 18))
 
         card = ttk.Frame(body, style='Card.TFrame', padding=22)
         card.grid(row=2, column=0, sticky='ew')
@@ -133,6 +137,21 @@ class Launcher:
         links.grid(row=2, column=0, sticky='w')
         ttk.Button(links, text='安装 / 更新浏览器脚本', command=lambda: webbrowser.open(core.SCRIPT_URL)).pack(side='left', padx=(0, 8))
         ttk.Button(links, text='打开学习通', command=lambda: webbrowser.open('https://i.chaoxing.com/')).pack(side='left')
+
+        bridge_card = ttk.Frame(body, style='Card.TFrame', padding=22)
+        bridge_card.grid(row=4, column=0, sticky='ew', pady=(16, 0))
+        bridge_card.columnconfigure(0, weight=1)
+        ttk.Label(bridge_card, text='03  从课程页面启动服务', style='Step.TLabel').grid(row=0, column=0, sticky='w')
+        ttk.Label(bridge_card, text='启用一次，以后在学习通点击“启动并连接”，无需打开终端。', style='Card.TLabel').grid(row=1, column=0, sticky='w', pady=(8, 6))
+        ttk.Label(bridge_card, text='浏览器可能询问是否打开 ChaoxingAI；允许后将读取已保存配置。', style='Card.TLabel').grid(row=2, column=0, sticky='w')
+        ttk.Label(bridge_card, textvariable=self.bridge_status, style='Card.TLabel').grid(row=3, column=0, sticky='w', pady=(8, 8))
+        bridge_actions = ttk.Frame(bridge_card, style='Card.TFrame')
+        bridge_actions.grid(row=4, column=0, sticky='w')
+        self.bridge_enable_button = ttk.Button(bridge_actions, text='启用 / 修复页面启动', command=self.enable_page_launch)
+        self.bridge_enable_button.pack(side='left', padx=(0, 8))
+        self.bridge_disable_button = ttk.Button(bridge_actions, text='停用页面启动', command=self.disable_page_launch)
+        self.bridge_disable_button.pack(side='left')
+        ttk.Label(bridge_card, text='只为当前 Windows 账号启用。请保留启动器所在文件夹，移动后重新启用。', style='Card.TLabel').grid(row=5, column=0, sticky='w', pady=(8, 0))
 
         footer = ttk.Frame(self.root, padding=(28, 12, 28, 20))
         footer.grid(row=1, column=0, columnspan=2, sticky='ew')
@@ -187,6 +206,39 @@ class Launcher:
             webbrowser.open(filename.as_uri())
         else:
             webbrowser.open('https://github.com/jinzhengwang60-del/ChaoxingAI#快速开始')
+
+    def _bridge_status(self):
+        enabled = page_bridge.registration_matches()
+        self.bridge_status.set('页面启动已启用。返回课程页即可使用。' if enabled else '页面启动尚未启用，或启动器位置发生了变化。')
+        self.bridge_disable_button.configure(state='normal' if enabled else 'disabled')
+
+    def enable_page_launch(self):
+        try:
+            page_bridge.register()
+            self._bridge_status()
+            self._status('页面启动已启用。以后在课程页点击“启动并连接”，允许浏览器打开 ChaoxingAI 即可。', 'success')
+        except (OSError, RuntimeError) as error:
+            self._status('未能启用页面启动：' + str(error), 'error')
+
+    def disable_page_launch(self):
+        try:
+            page_bridge.unregister()
+            self._bridge_status()
+            self._status('页面启动已停用。仍可双击启动器使用，不影响已保存配置。')
+        except (OSError, RuntimeError) as error:
+            self._status('未能停用页面启动：' + str(error), 'error')
+
+    def activate_from_page(self):
+        self.root.deiconify()
+        self.root.lift()
+        if self.busy:
+            return
+        if self.service.running:
+            self._status('本地服务已运行，返回课程页即可。', 'success')
+        elif self.saved:
+            self.start_saved()
+        else:
+            self._status('请先填写并保存 API 配置；已有 .env 可以点击“导入原 .env”。')
 
     def _work(self, action, operation):
         if self.busy or self.closed:
@@ -245,6 +297,8 @@ class Launcher:
     def _drain(self):
         if self.closed:
             return
+        if self.instance and self.instance.take_activation():
+            self.activate_from_page()
         try:
             while True:
                 action, settings, error = self.events.get_nowait()
@@ -311,17 +365,45 @@ def self_test(output):
         root.update()
         tk_version = root.tk.call('info', 'patchlevel')
         root.destroy()
+        instance = core.SingleInstance(directory)
+        try:
+            try:
+                core.SingleInstance(directory)
+            except core.AlreadyRunning:
+                pass
+            else:
+                raise AssertionError('Duplicate launcher was not blocked.')
+            assert instance.take_activation() and not instance.take_activation()
+        finally:
+            instance.close()
+        assert page_bridge.validate_url(page_bridge.START_URL) == 'start'
+        assert page_bridge.command().endswith(' --open-url "%1"')
     report = {'ok': True, 'launcher_version': core.APP_VERSION, 'tk_version': tk_version,
               'encrypted_storage': True, 'loopback_service': True, 'api_called': False,
-              'bundled': bool(getattr(sys, 'frozen', False))}
+              'bundled': bool(getattr(sys, 'frozen', False)),
+              'page_launch_command': True, 'single_instance_activation': True}
     Path(output).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
-def main():
-    parser = argparse.ArgumentParser(description=TITLE)
+def parse_arguments(argv):
+    parser = argparse.ArgumentParser(description=TITLE, allow_abbrev=False)
     parser.add_argument('--data-dir', type=Path)
     parser.add_argument('--self-test-output', type=Path)
-    args = parser.parse_args()
+    parser.add_argument('--open-url')
+    if any(value.startswith('--open-url') for value in argv):
+        # Reject extra flags before argparse: untrusted URLs cannot switch data
+        # directories, run self-tests, or write files by injecting arguments.
+        if len(argv) != 2 or argv[0] != '--open-url':
+            raise ValueError('页面启动不接受额外参数。')
+        page_bridge.validate_url(argv[1])
+    return parser.parse_args(argv)
+
+
+def main():
+    try:
+        args = parse_arguments(sys.argv[1:])
+    except ValueError:
+        return  # Invalid external links cannot override configuration or open a window.
     if args.self_test_output:
         self_test(args.self_test_output)
         return
@@ -330,12 +412,15 @@ def main():
     root.withdraw()
     try:
         instance = core.SingleInstance(directory)
+    except core.AlreadyRunning:
+        root.destroy()
+        return
     except RuntimeError as error:
         messagebox.showinfo(TITLE, str(error), parent=root)
         root.destroy()
         return
     try:
-        Launcher(root, directory)
+        Launcher(root, directory, instance)
         root.deiconify()
         root.mainloop()
     finally:

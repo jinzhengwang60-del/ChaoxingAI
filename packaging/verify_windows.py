@@ -23,6 +23,7 @@ def main():
         raise SystemExit('Bundled self-test did not complete successfully.')
     report = json.loads(output.read_text(encoding='utf-8'))
     assert report['ok'] and report['bundled'] and not report['api_called']
+    assert report['page_launch_command'] and report['single_instance_activation']
     from PyInstaller.archive.readers import CArchiveReader
     entries = CArchiveReader(str(executable)).toc
     assert not any(Path(name).name in {'.env', 'settings.json', 'cache.sqlite3'} for name in entries)

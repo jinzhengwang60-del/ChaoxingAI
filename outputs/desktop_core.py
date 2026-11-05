@@ -12,7 +12,7 @@ from urllib.request import build_opener, ProxyHandler
 
 import server
 
-APP_VERSION = '1.0.1'
+APP_VERSION = '1.1.0'
 DEFAULT_MODEL = 'deepseek-flash'
 SCRIPT_URL = 'https://scriptcat.org/zh-CN/script-show-page/8102'
 KEY_URL = 'https://platform.deepseek.com/api_keys'
@@ -153,25 +153,45 @@ class ServiceController:
         self.http = self.thread = None
 
 
+class AlreadyRunning(RuntimeError):
+    pass
+
+
 class SingleInstance:
     """A per-user-data-directory Windows mutex; no stale lock files."""
     def __init__(self, directory):
-        self.handle = None
+        self.handle = self.activation_handle = None
         if os.name != 'nt':
             return
         self.kernel = ctypes.WinDLL('kernel32', use_last_error=True)
         self.kernel.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
         self.kernel.CreateMutexW.restype = wintypes.HANDLE
         self.kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        self.kernel.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
+        self.kernel.CreateEventW.restype = wintypes.HANDLE
+        self.kernel.SetEvent.argtypes = [wintypes.HANDLE]
+        self.kernel.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+        self.kernel.WaitForSingleObject.restype = wintypes.DWORD
         identity = hashlib.sha256(str(Path(directory).resolve()).lower().encode()).hexdigest()[:24]
+        self.activation_handle = self.kernel.CreateEventW(None, False, False, 'Local\\ChaoxingAI-' + identity + '-start')
+        if not self.activation_handle:
+            raise RuntimeError('无法创建启动器通知，请重试。')
         self.handle = self.kernel.CreateMutexW(None, False, 'Local\\ChaoxingAI-' + identity)
         if not self.handle:
+            self.close()
             raise RuntimeError('无法检查启动器运行状态，请重试。')
         if ctypes.get_last_error() == 183:
+            self.kernel.SetEvent(self.activation_handle)
             self.close()
-            raise RuntimeError('ChaoxingAI 启动器已经打开，请使用已有窗口。')
+            raise AlreadyRunning('已通知打开的 ChaoxingAI 启动器，请使用已有窗口。')
+
+    def take_activation(self):
+        return bool(self.activation_handle and self.kernel.WaitForSingleObject(self.activation_handle, 0) == 0)
 
     def close(self):
         if self.handle:
             self.kernel.CloseHandle(self.handle)
             self.handle = None
+        if self.activation_handle:
+            self.kernel.CloseHandle(self.activation_handle)
+            self.activation_handle = None

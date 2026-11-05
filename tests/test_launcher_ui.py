@@ -86,6 +86,30 @@ class LauncherUITests(unittest.TestCase):
             self.assertFalse(self.app.busy)
             api.assert_not_called()
 
+    def test_page_activation_restarts_stopped_service_without_paid_test(self):
+        self.app.saved = {'DEEPSEEK_API_KEY': 'saved-test-key', 'DEEPSEEK_MODEL': core.DEFAULT_MODEL}
+        with patch.object(core, 'test_connection') as paid_test:
+            self.app.activate_from_page()
+            self.wait_for_worker()
+            self.assertTrue(self.app.service.running)
+            self.app.activate_from_page()
+            self.assertFalse(self.app.busy)
+            paid_test.assert_not_called()
+
+    def test_explicit_page_launch_buttons_and_registration_error(self):
+        with patch.object(launcher.page_bridge, 'register') as register, \
+             patch.object(launcher.page_bridge, 'registration_matches', return_value=True):
+            self.app.bridge_enable_button.invoke()
+            register.assert_called_once()
+            self.assertIn('已启用', self.app.bridge_status.get())
+        with patch.object(launcher.page_bridge, 'unregister') as unregister, \
+             patch.object(launcher.page_bridge, 'registration_matches', return_value=False):
+            self.app.bridge_disable_button.invoke()
+            unregister.assert_called_once()
+        with patch.object(launcher.page_bridge, 'register', side_effect=OSError('test error')):
+            self.app.bridge_enable_button.invoke()
+            self.assertIn('未能启用', self.app.status.get())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

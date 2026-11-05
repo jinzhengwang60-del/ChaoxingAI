@@ -6,7 +6,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 DIST = ROOT / 'dist'
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 
 
 def main():
@@ -14,12 +14,13 @@ def main():
     if not exe.is_file():
         raise SystemExit('Build the launcher first.')
     public_sources = ['README.md', 'LICENSE', 'NOTICE.md', '.gitignore',
-        'outputs/launcher.py', 'outputs/desktop_core.py', 'outputs/server.py',
+        'outputs/launcher.py', 'outputs/desktop_core.py', 'outputs/page_bridge.py', 'outputs/server.py',
         'outputs/launcher_help.html', 'outputs/auto-ai.js', 'outputs/.env.example',
         'outputs/安装说明.md', 'source/auto.js', 'packaging/requirements-build.txt',
         'packaging/ChaoxingAI.spec', 'packaging/build_windows.ps1', 'packaging/package_release.py',
         'packaging/verify_windows.py', 'packaging/RELEASE-v1.0.0.md', 'packaging/RELEASE-v1.0.1.md',
         'packaging/build_panel.py', 'packaging/preview_panel.py', 'packaging/RELEASE-script-v4.1.0.md',
+        'packaging/RELEASE-v1.1.0.md',
         'ui/chapter-panel.js', 'ui/chapter-panel.css', 'ui/preview.html']
     public_sources += [p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'tests').glob('test_*')) if p.is_file()]
     license_files = sorted((ROOT / 'packaging' / 'licenses').glob('*.txt'))
@@ -34,14 +35,18 @@ def main():
 2. 双击 ChaoxingAI-Launcher.exe，无需安装 Python。
 3. 首次使用点击“获取 API 密钥”，在 DeepSeek 官方平台创建密钥。
 4. 将密钥粘贴到启动器，点击“测试并保存，启动服务”。
-5. 点击“安装 / 更新浏览器脚本”，安装普通脚本，再打开学习通。
+5. 点击“启用 / 修复页面启动”，再安装 / 更新浏览器普通脚本，打开学习通。
 
-启动器版本为 1.0.1，浏览器脚本版本以包内 ChaoxingAI.user.js 的 @version 为准。
+启动器版本为 VERSION，配套浏览器脚本为 4.2.0-ai。
 可从脚本猫更新，也可在脚本猫扩展中导入本包的 ChaoxingAI.user.js。
 超时、断线或服务繁忙最多尝试 3 次；仍失败时，恢复网络后点击题目页顶部“重试失败题目”。
 重试不会再次分析已经成功的题目；失败题目未核对时不会自动提交。
 
-以后只要双击启动器，服务会自动启动。可以最小化，退出会停止服务。
+以后在课程面板点击“启动并连接”，在浏览器提示中允许打开 ChaoxingAI。
+启动器读取已有配置，页面自动等待连接，无需打开终端。
+已打开的启动器也会收到启动通知，不会重复打开服务；最小化可继续运行。
+退出启动器会停止服务。可在启动器中停用页面启动，不影响已保存配置。
+页面启动只为当前 Windows 账号启用；请保留启动器所在文件夹，移动后重新启用。
 密钥在 Windows 当前用户账号下加密保存，不随本压缩包分发。
 AI API 可能收费；连接测试会发送一道示例题，可能产生少量费用。
 已有 server.py 服务时，请先在原窗口按 Ctrl+C 停止，再启动本工具。

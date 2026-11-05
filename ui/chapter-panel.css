@@ -20,6 +20,16 @@ body.cxai-panel-body{margin:0;background:#f5f7fb;color:#243249;font:14px/1.65 -a
 #cxai-panel .cxai-health[data-tone=warning] .cxai-dot{background:#e4a12c}
 #cxai-panel .cxai-text-button{display:inline-flex;gap:5px;align-items:center;border:0;background:transparent;color:#62809f;font-size:12px;padding:5px 2px;border-radius:5px}
 #cxai-panel .cxai-text-button svg{width:14px;height:14px}
+#cxai-panel .cxai-connect-button{border:0;border-radius:8px;padding:7px 12px;background:#3478f6;color:white;font-size:12px;white-space:nowrap}
+#cxai-panel .cxai-connect{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:15px 19px;border:1px solid #dfe9fc;border-radius:12px;background:#fff;margin-bottom:18px;color:#6d819f;font-size:12px}
+#cxai-panel .cxai-connect[hidden],#cxai-panel [hidden]{display:none!important}
+#cxai-panel .cxai-connect-copy{flex:1;min-width:180px}
+#cxai-panel .cxai-connect strong{color:#41638d;font-size:13px}
+#cxai-panel .cxai-connect p{margin:4px 0 0;overflow-wrap:anywhere}
+#cxai-panel .cxai-connect details{flex-basis:100%;border:0}
+#cxai-panel .cxai-connect summary{justify-content:flex-start;padding:3px 0;color:#62809f}
+#cxai-panel .cxai-connect .cxai-more-body{padding:5px 0 0}
+#cxai-panel .cxai-connect a{color:#3478f6}
 #cxai-panel .cxai-overview{padding:22px 24px 18px;border:1px solid #dfe9fc;border-radius:15px;background:linear-gradient(115deg,#f0f6ff,#f9fbff);margin-bottom:20px}
 #cxai-panel .cxai-overview-top{display:flex;gap:14px;align-items:flex-start}
 #cxai-panel .cxai-state-icon{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;background:#e2edff;color:var(--blue);border-radius:13px;margin-top:2px}

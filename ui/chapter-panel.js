@@ -14,11 +14,12 @@ function createChapterPanel(doc, options = {}) {
         down: '<path d="m7 10 5 5 5-5"/>'
     };
     const icon = name => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (paths[name] || paths.clock) + '</svg>';
-    const version = escape(options.version || '4.1.0-ai');
+    const version = escape(options.version || '4.2.0-ai');
     const html = `<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>ChaoxingAI 学习助手</title><style>${CHAPTER_PANEL_CSS}</style></head>
 <body class="cxai-panel-body"><main id="cxai-panel" aria-label="ChaoxingAI 学习助手">
   <header class="cxai-header"><div class="cxai-brand"><div class="cxai-brand-mark">${icon('book')}</div><div><h1>ChaoxingAI <span class="cxai-version">v${version}</span></h1><div class="cxai-brand-sub">学习助手 · 专注当前这一节</div></div></div>
-    <div class="cxai-health-group"><span class="cxai-health" id="cxai-health" data-tone="neutral"><span class="cxai-dot"></span><span id="cxai-health-text">本地服务 · 待检测</span></span><button type="button" id="cxai-health-check" class="cxai-text-button">${icon('refresh')}检测连接</button></div></header>
+    <div class="cxai-health-group"><span class="cxai-health" id="cxai-health" data-tone="neutral"><span class="cxai-dot"></span><span id="cxai-health-text">本地服务 · 待检测</span></span><button type="button" id="cxai-health-check" class="cxai-text-button">${icon('refresh')}检测连接</button><button type="button" id="cxai-launch" class="cxai-connect-button" disabled>启动并连接</button></div></header>
+  <section id="cxai-connect" class="cxai-connect" aria-label="连接本地服务" hidden><div class="cxai-connect-copy"><strong id="cxai-connect-title">在这里启动，无需打开终端</strong><p id="cxai-connect-message" role="status">需要 Windows 启动器 1.1.0 或更新版本；已有配置可以继续使用。</p></div><button type="button" id="cxai-connect-cancel" class="cxai-text-button" hidden>取消等待</button><details><summary>首次使用 / 没有反应 ${icon('down')}</summary><div class="cxai-more-body"><p>首次打开新版启动器，点击“启用 / 修复页面启动”。以后回到这里点击“启动并连接”，在浏览器提示中允许打开 ChaoxingAI。</p><p>如果只用过 server.py，可在启动器中“导入原 .env”，测试并保存一次。已保存的启动器配置无需重填。</p><p>打开启动器后，请保留其所在文件夹；移动位置后重新启用页面启动。退出启动器会停止服务，最小化可以继续运行。</p><p>启动成功后会自动更新连接状态；已失败的题目仍可用题目页的“重试失败题目”恢复。</p><a href="https://github.com/jinzhengwang60-del/ChaoxingAI/releases" target="_blank" rel="noopener">启动器下载与版本说明 ↗</a></div></details></section>
   <aside id="cxai-notice" class="cxai-notice" hidden role="status"><span id="cxai-notice-text"></span><button type="button" id="cxai-dismiss-notice" aria-label="收起这条提示">×</button></aside>
   <section class="cxai-overview" aria-label="当前任务状态"><div class="cxai-overview-top"><div class="cxai-state-icon" id="cxai-state-icon">${icon('clock')}</div><div><p class="cxai-eyebrow">当前状态</p><h2 id="cxai-status-title">正在识别本页任务</h2><p id="cxai-status-detail">任务加载后会自动更新，学习通右侧目录仍可正常使用。</p></div></div>
     <div class="cxai-progress-head"><span>本页进度</span><span id="cxai-progress-label">等待任务数据</span></div><progress id="cxai-progress" max="1" value="0" aria-label="本页任务完成情况"></progress>
@@ -121,23 +122,54 @@ function createChapterPanel(doc, options = {}) {
             '</div><div class="cxai-task-detail">' + escape(task.detail || typeNames[task.type] || '课程任务') + '</div></div><span class="cxai-task-badge">' + escape(stateNames[task.state] || '等待中') + '</span></div>').join('') :
             '<div class="cxai-empty">' + icon(state.error ? 'info' : state.ready ? 'check' : 'clock') + escape(state.error || (state.ready ? '本页没有待处理的课程任务。' : '正在读取任务信息…')) + '</div>';
     }
-    function mount({requestHealth} = {}) {
+    function mount({requestHealth, launchService, schedule = (fn, delay) => setTimeout(fn, delay),
+                    cancel = timer => clearTimeout(timer), now = () => Date.now()} = {}) {
         mounted = true;
         get('cxai-dismiss-notice').onclick = () => { get('cxai-notice').hidden = true; };
+        let connecting = false, connected = false, generation = 0, pollTimer = null, deadlineTimer = null;
+        const launchButton = get('cxai-launch');
+        const connectionMessage = get('cxai-connect-message');
+        function stopWaiting() {
+            connecting = false;
+            if (pollTimer !== null) cancel(pollTimer);
+            if (deadlineTimer !== null) cancel(deadlineTimer);
+            pollTimer = deadlineTimer = null;
+            get('cxai-connect-cancel').hidden = true;
+            launchButton.textContent = '启动并连接';
+            launchButton.disabled = connected;
+            get('cxai-health-check').disabled = refreshingHealth;
+        }
+        function showUnavailable(text) {
+            get('cxai-connect').hidden = false;
+            connectionMessage.textContent = text;
+        }
         const checkHealth = () => {
             if (refreshingHealth || !requestHealth) return;
             refreshingHealth = true;
+            const requestGeneration = generation;
             const button = get('cxai-health-check');
             button.disabled = true;
             get('cxai-health-text').textContent = '正在检测本地服务';
             let settled = false;
-            const finish = (text, tone) => {
-                if (settled) return;
+            const finish = (text, tone, ready = false) => {
+                if (settled || requestGeneration !== generation) return;
                 settled = true;
                 refreshingHealth = false;
-                button.disabled = false;
+                connected = ready;
                 get('cxai-health-text').textContent = text;
                 get('cxai-health').dataset.tone = tone;
+                launchButton.hidden = ready;
+                get('cxai-connect').hidden = ready;
+                if (ready) stopWaiting();
+                else if (connecting) {
+                    pollTimer = schedule(() => { pollTimer = null; checkHealth(); }, 1500);
+                } else {
+                    launchButton.disabled = false;
+                    get('cxai-connect-title').textContent = '在这里启动，无需打开终端';
+                    if (/待配置/.test(text)) showUnavailable('本地服务已启动，请在启动器中完成 API 配置，再检测连接。');
+                    else showUnavailable('需要 Windows 启动器 1.1.0 或更新版本；已有配置可以继续使用。');
+                }
+                button.disabled = connecting;
             };
             try {
                 requestHealth({method: 'GET', url: 'http://127.0.0.1:8787/health', timeout: 4000,
@@ -145,7 +177,7 @@ function createChapterPanel(doc, options = {}) {
                         try {
                             const data = JSON.parse(response.responseText);
                             if (response.status !== 200 || data.ok !== true || data.service !== 'ChaoxingAI') { finish('本地服务 · 状态异常', 'warning'); return; }
-                            finish(data.configured === false ? '本地服务 · 待配置密钥' : '本地服务 · 已连接', data.configured === false ? 'warning' : 'success');
+                            finish(data.configured === true ? '本地服务 · 已连接' : '本地服务 · 待配置密钥', data.configured === true ? 'success' : 'warning', data.configured === true);
                         } catch (_) { finish('本地服务 · 响应异常', 'warning'); }
                     },
                     onerror: () => finish('本地服务 · 未连接', 'warning'),
@@ -154,6 +186,54 @@ function createChapterPanel(doc, options = {}) {
             } catch (_) { finish('本地服务 · 未连接', 'warning'); }
         };
         get('cxai-health-check').onclick = checkHealth;
+        launchButton.onclick = () => {
+            if (connecting || refreshingHealth || connected) return;
+            connecting = true;
+            generation++;
+            launchButton.disabled = true;
+            launchButton.textContent = '等待连接…';
+            get('cxai-health-check').disabled = true;
+            get('cxai-connect-cancel').hidden = false;
+            get('cxai-connect-title').textContent = '正在等待启动器';
+            showUnavailable('请在浏览器提示中允许打开 ChaoxingAI。启动器将读取已保存配置，连接成功后这里会自动更新。');
+            const started = now();
+            deadlineTimer = schedule(() => {
+                generation++;
+                refreshingHealth = false;
+                stopWaiting();
+                get('cxai-health-text').textContent = '本地服务 · 尚未连接';
+                get('cxai-health').dataset.tone = 'warning';
+                get('cxai-connect-title').textContent = '还没有连接到本地服务';
+                showUnavailable('已等待 ' + Math.round((now() - started) / 1000) + ' 秒。请确认允许浏览器打开启动器，或在新版启动器中启用页面启动；完成配置后可再次点击。');
+            }, 60000);
+            try {
+                if (launchService) launchService();
+                else {
+                    // Keep this in the click handler so browser user activation is preserved.
+                    const link = doc.createElement('a');
+                    link.href = 'chaoxingai://start';
+                    link.target = '_top';
+                    doc.body.appendChild(link);
+                    try { link.click(); } finally { link.remove(); }
+                }
+                checkHealth();
+            } catch (_) {
+                generation++;
+                refreshingHealth = false;
+                stopWaiting();
+                get('cxai-connect-title').textContent = '未能打开启动器';
+                showUnavailable('请先打开新版 Windows 启动器，点击“启用 / 修复页面启动”，然后再试。');
+            }
+        };
+        get('cxai-connect-cancel').onclick = () => {
+            generation++;
+            refreshingHealth = false;
+            stopWaiting();
+            get('cxai-health-text').textContent = '本地服务 · 等待已取消';
+            get('cxai-health').dataset.tone = 'neutral';
+            get('cxai-connect-title').textContent = '已取消等待';
+            showUnavailable('启动器可能仍在运行；这里只停止检测。可以点击“检测连接”重新检查。');
+        };
         checkHealth();
         renderLogs();
         if (latestState) update(latestState);

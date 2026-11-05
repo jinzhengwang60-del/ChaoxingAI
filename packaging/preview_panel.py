@@ -27,7 +27,8 @@ window.top.unrivalReviewMode='0';
 window.top.jump=false;
 window.GM_xmlhttpRequest=request=>{
   if(request.url==='http://127.0.0.1:8787/health'){
-    request.onload({status:200,responseText:JSON.stringify({ok:true,service:'ChaoxingAI',configured:true,version:'1.0.1'})});
+    if(window.previewHealth==='offline') request.onerror();
+    else request.onload({status:200,responseText:JSON.stringify({ok:true,service:'ChaoxingAI',configured:true,version:'1.0.1'})});
   }else if(request.url.includes('/ananas/status/')){
     request.onload({status:200,responseText:JSON.stringify({duration:960,dtoken:'preview-only'})});
   }
@@ -42,6 +43,9 @@ window.setInterval=(callback,delay,...args)=>{
 function showPreview(state='video'){
   const panel=window.cxaiPreviewPanel;
   if(!panel){setTimeout(()=>showPreview(state),30);return}
+  window.previewHealth=state==='offline'?'offline':'online';
+  const healthCheck=document.querySelector('#cxai-health-check');
+  if(healthCheck&&!healthCheck.disabled)healthCheck.click();
   const tasks=[{type:'video',name:'金融如何支持实体经济.mp4',state:'running'},
     {type:'document',name:'本节学习资料',state:'done'},
     {type:'work',name:'本节知识巩固',state:'queued'}];
@@ -81,6 +85,9 @@ class Handler(BaseHTTPRequestHandler):
             body = (ROOT / 'outputs/auto-ai.js').read_text(encoding='utf-8')
             before = 'const chapterPanel = createChapterPanel(_d, {version: AI_SCRIPT_VERSION});'
             body = body.replace(before, before + '\n        window.cxaiPreviewPanel = chapterPanel;', 1)
+            # The preview never invokes a real external application.
+            body = body.replace('chapterPanel.mount({requestHealth: request => GM_xmlhttpRequest(request)});',
+                "chapterPanel.mount({requestHealth: request => GM_xmlhttpRequest(request), launchService: () => { setTimeout(() => {window.previewHealth='online'}, 2500); }});", 1)
             content_type = 'text/javascript; charset=utf-8'
         elif path.startswith('/work/'):
             body = '<!doctype html><html lang="zh-CN"><meta charset="utf-8"><body style="font:14px system-ui;color:#7c8da7;padding:30px">章节测验预览区域；此处不加载真实课程。</body></html>'
